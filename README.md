@@ -2,6 +2,8 @@
 
 ![CircleCI](https://circleci.com/gh/zeit/cosmosdb-query.svg?style=svg&circle-token=9e222857e204b02378b95ed119a319c0e17223d2)
 
+This module is experimental, vulnerable and slow. Not intended to be used on production.
+
 ```js
 const query = require('@zeit/cosmosdb-query')
 const collection = [

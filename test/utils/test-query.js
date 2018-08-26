@@ -1,6 +1,6 @@
 // @flow
 const assert = require("assert");
-const query = require("../lib");
+const query = require("../../lib");
 
 module.exports = (
   collection: any[],

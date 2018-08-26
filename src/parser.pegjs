@@ -14,8 +14,7 @@
     "DESC",
     "AND",
     "OR",
-    "NOT",
-    "ROOT"
+    "NOT"
   ])
 }
 
@@ -262,7 +261,6 @@ desc = "DESC"i !identifier_start { return "DESC" }
 and = "AND"i !identifier_start { return "AND" }
 or = "OR"i !identifier_start { return "OR" }
 not = "NOT"i !identifier_start { return "NOT" }
-root = "ROOT"i !identifier_start { return "ROOT" }
 
 identifier
   = name:(head:identifier_start tail:[a-zA-Z0-9_]* { return head + tail.join('') })
@@ -447,14 +445,7 @@ object_constant_property
     { return { key, value } }
 
 collection_primary_expression
-  = root
-    {
-      return {
-        type: 'collection_expression',
-        root: true
-      }
-    }
-  / expression:identifier
+  = expression:identifier
     {
       return {
         type: 'collection_expression',

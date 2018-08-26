@@ -1,5 +1,5 @@
 // @flow
-const testQuery = require("./test-query");
+const testQuery = require("./utils/test-query");
 
 const collection = [
   {

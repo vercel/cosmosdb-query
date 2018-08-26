@@ -1,5 +1,5 @@
 {
-  "name": "cosmosdb-query",
+  "name": "@zeit/cosmosdb-query",
   "version": "0.0.1",
   "license": "UNLICENSED",
   "main": "lib/index.js",

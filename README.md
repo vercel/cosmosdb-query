@@ -1,5 +1,7 @@
 # cosmosdb-query
 
+![CircleCI](https://circleci.com/gh/zeit/cosmosdb-query.svg?style=svg&circle-token=9e222857e204b02378b95ed119a319c0e17223d2)
+
 ```js
 const query = require('@zeit/cosmosdb-query')
 const collection = [

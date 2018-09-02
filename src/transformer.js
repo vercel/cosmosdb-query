@@ -181,12 +181,19 @@ const definitions = {
       type: "MemberExpression",
       object: {
         type: "Identifier",
-        name: "__p"
+        name: "$p"
       },
       property: {
         type: "Identifier",
         name: name.slice(1)
       }
+    };
+  },
+
+  scalar_array_expression(ctx, { values }) {
+    return {
+      type: "ArrayExpression",
+      elements: values.map(v => transform(ctx, v))
     };
   },
 
@@ -196,6 +203,7 @@ const definitions = {
         "=": "===",
         "!=": "!==",
         "<>": "!==",
+        "||": "+",
         AND: "&&",
         OR: "||"
       }[operator] || operator;
@@ -209,6 +217,15 @@ const definitions = {
       left: transform(ctx, left),
       operator: op,
       right: transform(ctx, right)
+    };
+  },
+
+  scalar_conditional_expression(ctx, { test, consequent, alternate }) {
+    return {
+      type: "ConditionalExpression",
+      test: transform(ctx, test),
+      consequent: transform(ctx, consequent),
+      alternate: transform(ctx, alternate)
     };
   },
 
@@ -242,19 +259,27 @@ const definitions = {
   },
 
   select_query(ctx, { select, from, where, orderBy }) {
-    const name = "__c";
-
-    ctx.ast = {
-      type: "Identifier",
-      name
-    };
+    const name = "$c";
 
     if (from) {
+      ctx.ast = {
+        type: "Identifier",
+        name
+      };
       ctx.document = transform(
         ctx,
         from.source.alias || from.source.expression
       );
       ctx.ast = transform(ctx, from);
+    } else {
+      ctx.ast = {
+        type: "ArrayExpression",
+        elements: [
+          {
+            type: "NullLiteral"
+          }
+        ]
+      };
     }
 
     if (where) {
@@ -276,7 +301,7 @@ const definitions = {
         },
         {
           type: "Identifier",
-          name: "__p"
+          name: "$p"
         }
       ],
       body: ctx.ast
@@ -302,7 +327,7 @@ const definitions = {
         arguments: [
           {
             type: "ArrowFunctionExpression",
-            params: [ctx.document],
+            params: ctx.document ? [ctx.document] : [],
             body: transform(ctx, properties)
           }
         ]

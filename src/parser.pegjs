@@ -16,6 +16,15 @@
     "OR",
     "NOT"
   ])
+
+  function buildBinaryExpression(head, tail) {
+    return tail.reduce((left, [, operator, , right]) => ({
+      type: 'scalar_binary_expression',
+      left,
+      operator,
+      right
+    }), head)
+  }
 }
 
 select_query
@@ -130,10 +139,6 @@ sort_expression
 
 scalar_expression
   = scalar_conditional_expression
-  / scalar_binary_expression
-  / scalar_unary_expression
-  / scalar_member_expression
-  / scalar_primary_expression
 
 scalar_function_expression
   = "udf." identifier _ "(" _ (scalar_expression (_ "," _ scalar_expression))? _ ")"
@@ -152,7 +157,7 @@ scalar_object_expression
     }
 
 scalar_array_expression
-  = "[" _ head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })? _ "]"
+  = "[" _ head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })* _ "]"
     {
       return {
         type: "scalar_array_expression",
@@ -299,30 +304,6 @@ unary_operator
   / "~"
   / not
 
-binary_operator
-  = "+"
-  / "-"
-  / "*"
-  / "/"
-  / "%"
-  / "||"
-  / "|"
-  / "&"
-  / "^"
-  / "<>"
-  / "<="
-  / "<<"
-  / "<"
-  / ">="
-  / ">>>"
-  / ">>"
-  / ">"
-  / and
-  / or
-  / "="
-  / "!="
-  / "??"
-
 double_string_character
   = !('"' / "\\") source_character { return text(); }
   / "\\" seq:escape_sequence { return seq }
@@ -372,14 +353,14 @@ object_property
     { return { property, alias } }
 
 scalar_primary_expression
-  = constant
-  / identifier
+  = identifier
   / parameter_name
-  / scalar_function_expression
-  / scalar_object_expression
+  / constant
   / scalar_array_expression
+  / scalar_object_expression
   / "(" _ expression:scalar_expression _ ")"
     { return expression }
+  / scalar_function_expression
 
 scalar_member_expression
   = head:scalar_primary_expression
@@ -388,7 +369,7 @@ scalar_member_expression
       { return { property, computed: false } }
     / _ "[" _ property:(string_constant / array_index / parameter_name) _ "]"
       { return { property, computed: true } }
-    )+
+    )*
     {
       return tail.reduce((object, { property, computed }) => ({
         type: 'scalar_member_expression',
@@ -399,7 +380,8 @@ scalar_member_expression
     }
 
 scalar_unary_expression
-  = operator:unary_operator _ argument:(scalar_member_expression / scalar_primary_expression)
+  = scalar_member_expression
+  / operator:unary_operator _ argument:scalar_unary_expression
     {
       return {
         type: 'scalar_unary_expression',
@@ -408,25 +390,10 @@ scalar_unary_expression
       }
     }
 
-scalar_binary_expression
-  = head:(scalar_unary_expression / scalar_member_expression / scalar_primary_expression)
-    tail:(
-      _ operator:binary_operator _ right:(scalar_unary_expression / scalar_member_expression / scalar_primary_expression)
-      { return { operator, right } }
-    )+
-    {
-      return tail.reduce((left, { operator, right }) => ({
-        type: 'scalar_binary_expression',
-        left,
-        operator,
-        right
-      }), head)
-    }
-
 scalar_conditional_expression
-  = test:(scalar_binary_expression / scalar_unary_expression / scalar_member_expression / scalar_primary_expression) _ "?" _
-    consequent:(scalar_binary_expression / scalar_unary_expression / scalar_member_expression / scalar_primary_expression) _ ":" _
-    alternate:(scalar_binary_expression / scalar_unary_expression / scalar_member_expression / scalar_primary_expression)
+  = test:(scalar_binary_or_expression) _ "?" _
+    consequent:(scalar_conditional_expression) _ ":" _
+    alternate:(scalar_conditional_expression)
     {
       return {
         type: 'scalar_conditional_expression',
@@ -435,6 +402,57 @@ scalar_conditional_expression
         alternate
       }
     }
+  / scalar_binary_or_expression
+
+scalar_binary_or_expression
+  = head:(scalar_binary_and_expression)
+    tail:(_ or _ scalar_binary_and_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_and_expression
+  = head:(scalar_binary_equality_expression)
+    tail:(_ and _ scalar_binary_equality_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_equality_expression
+  = head:(scalar_binary_relational_expression)
+    tail:(_ ("=" / "!=" / "<>") _ scalar_binary_relational_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_relational_expression
+  = head:(scalar_binary_bitwise_or_expression)
+    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_binary_or_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_bitwise_or_expression
+  = head:(scalar_binary_bitwise_xor_expression)
+    tail:(_ "|" _ scalar_binary_bitwise_xor_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_bitwise_xor_expression
+  = head:(scalar_binary_bitwise_and_expression)
+    tail:(_ "^" _ scalar_binary_bitwise_and_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_bitwise_and_expression
+  = head:(scalar_binary_shift_expression)
+    tail:(_ "&" _ scalar_binary_shift_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_shift_expression
+  = head:(scalar_binary_additive_expression)
+    tail:(_ ("<<" / ">>>" / ">>") _ scalar_binary_additive_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_additive_expression
+  = head:(scalar_binary_multiplicative_expression)
+    tail:(_ ("+" / "-" / "||") _ scalar_binary_multiplicative_expression)*
+    { return buildBinaryExpression(head, tail) }
+
+scalar_binary_multiplicative_expression
+  = head:(scalar_unary_expression)
+    tail:(_ ("*" / "/" / "%") _ scalar_unary_expression)*
+    { return buildBinaryExpression(head, tail) }
 
 scalar_object_element_property
   = key:(identifier / string_constant) _ ":" _ value:scalar_expression

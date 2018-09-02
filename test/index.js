@@ -194,6 +194,100 @@ exports.unaryOperator2 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => -c.grade === -5)
 );
 
+exports.conditionalExpression1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT (c.grade < 5)? "elementary": "other" AS gradeLevel
+      FROM Families.children[0] c
+    `
+  },
+  collection
+    .map(Families => Families.children[0])
+    .map(c => ({ gradeLevel: c.grade < 5 ? "elementary" : "other" }))
+);
+
+exports.conditionalExpression2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT (c.grade < 5)? "elementary": ((c.grade < 9)? "junior": "high")  AS gradeLevel
+      FROM Families.children[0] c
+    `
+  },
+  collection.map(Families => Families.children[0]).map(c => ({
+    // eslint-disable-next-line no-nested-ternary
+    gradeLevel: c.grade < 5 ? "elementary" : c.grade < 9 ? "junior" : "high"
+  }))
+);
+
+exports.quotedPropertyAccessor = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f["lastName"]
+      FROM Families f
+      WHERE f["id"] = "AndersenFamily"
+    `
+  },
+  collection
+    .filter(f => f.id === "AndersenFamily")
+    .map(({ lastName }: { lastName?: string }) => ({ lastName }))
+);
+
+exports.aliasing = testQuery(
+  collection,
+  {
+    query: `
+      SELECT
+             { "state": f.address.state, "city": f.address.city } AS AddressInfo,
+             { "name": f.id } NameInfo
+      FROM Families f
+      WHERE f.id = "AndersenFamily"
+    `
+  },
+  collection.filter(f => f.id === "AndersenFamily").map(f => ({
+    AddressInfo: { state: f.address.state, city: f.address.city },
+    NameInfo: { name: f.id }
+  }))
+);
+
+exports.scalarExpressions1 = testQuery(
+  collection,
+  { query: 'SELECT "Hello World"' },
+  [{ $1: "Hello World" }]
+);
+
+exports.scalarExpressions2 = testQuery(
+  collection,
+  { query: "SELECT ((2 + 11 % 7)-2)/3" },
+  [{ $1: (2 + (11 % 7) - 2) / 3 }]
+);
+
+exports.scalarExpressions3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.address.city = f.address.state AS AreFromSameCityState
+      FROM Families f
+    `
+  },
+  collection.map(f => ({
+    AreFromSameCityState: f.address.city === f.address.state
+  }))
+);
+
+exports.objectAndArrayCreation = testQuery(
+  collection,
+  {
+    query: `
+      SELECT [f.address.city, f.address.state] AS CityState
+      FROM Families f
+    `
+  },
+  collection.map(f => ({ CityState: [f.address.city, f.address.state] }))
+);
+
 exports.fromIn = testQuery(
   collection,
   { query: "SELECT * FROM c IN Families.children" },

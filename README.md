@@ -6,15 +6,20 @@ This module is experimental, vulnerable and slow. Not intended to be used on pro
 
 ```js
 const query = require('@zeit/cosmosdb-query')
+
 const collection = [
   { id: 'foo' },
   { id: 'bar' }
 ]
-const docs = query(collection, {
-  query: 'SELECT * FROM c WHERE c.id = @id',
-  parameters: [{ name: '@id', value: 'foo' }]
-})
+
+const docs = query('SELECT * FROM c WHERE c.id = @id')
+  .exec(collection, [{ name: '@id', value: 'foo' }])
 console.log(docs) // [ { id: 'foo' } ]
+
+q = query('SELECT * FROM c WHERE c.id = 1')
+if (!q.containsPartitionKeys(['/key'])) {
+  throw new Error('query doesn\'t contain partition keys')
+}
 ```
 
 ## TODO

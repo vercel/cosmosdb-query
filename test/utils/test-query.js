@@ -3,7 +3,7 @@ const assert = require("assert");
 const query = require("../../lib");
 
 module.exports = (
-  collection: any[],
+  collection: ?any[],
   params: {
     query: string,
     parameters?: { name: string, value: any }[]

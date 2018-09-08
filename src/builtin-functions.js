@@ -1,55 +1,56 @@
 // @flow
 
-exports.ABS = (v) => Math.abs(v)
+exports.ABS = (v: number) => Math.abs(v)
 
-exports.ARRAY_CONCAT = (...a) => a.reduce((b, c) => [...b, ...c], [])
+exports.ARRAY_CONCAT = (...a: Array<any[]>) => a.reduce((b, c) => [...b, ...c], [])
 
-exports.ARRAY_CONTAINS = (a, c) => a.some(i => Object.keys(c).every(k => i[k] === c[k]))
+exports.ARRAY_CONTAINS = (a: any[], c: any) => a.some(i => exports.IS_OBJECT(c) ? Object.keys(c).every(k => i[k] === c[k]) : i === c)
 
-exports.ARRAY_LENGTH = (a) => a.length
+exports.ARRAY_LENGTH = (a: any[]) => a.length
 
-exports.ARRAY_SLICE = (a, b, c) => a.slice(b, c ? b + c : undefined)
+// $FlowFixMe
+exports.ARRAY_SLICE = (a: any[], b: number, c?: number) => a.slice(b, c != null ? b + c : undefined)
 
-exports.CEILING = (v) => Math.ceil(v)
+exports.CEILING = (v: number) => Math.ceil(v)
 
-exports.CONCAT = (...a) => a.join('')
+exports.CONCAT = (...a: string[]) => a.join('')
 
-exports.CONTAINS = (a, b) => a.includes(b)
+exports.CONTAINS = (a: string, b: string) => a.includes(b)
 
-exports.FLOOR = (v) => Math.floor(v)
+exports.FLOOR = (v: number) => Math.floor(v)
 
-exports.INDEX_OF = (a, b) => a.indexOf(b)
+exports.INDEX_OF = (a: string, b: string) => a.indexOf(b)
 
-exports.IS_ARRAY = (v) => Array.isArray(v)
+exports.IS_ARRAY = (v: any) => Array.isArray(v)
 
-exports.IS_BOOL = (v) => typeof v === 'boolean'
+exports.IS_BOOL = (v: any) => typeof v === 'boolean'
 
-exports.IS_DEFINED = (v) => typeof v !== 'undefined'
+exports.IS_DEFINED = (v: any) => typeof v !== 'undefined'
 
-exports.IS_NULL = (v) => v === null
+exports.IS_NULL = (v: any) => v === null
 
-exports.IS_NUMBER = (v) => typeof v === 'number'
+exports.IS_NUMBER = (v: any) => typeof v === 'number'
 
-exports.IS_OBJECT = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
+exports.IS_OBJECT = (v: any) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
 
-exports.IS_PRIMITIVE = (v) => exports.IS_NULL(v) || exports.IS_NUMBER(v) || exports.IS_STRING(v) || exports.IS_BOOL(v)
+exports.IS_PRIMITIVE = (v: any) => exports.IS_NULL(v) || exports.IS_NUMBER(v) || exports.IS_STRING(v) || exports.IS_BOOL(v)
 
-exports.IS_STRING = (v) => typeof v === 'string'
+exports.IS_STRING = (v: any) => typeof v === 'string'
 
-exports.LENGTH = (v) => v.length
+exports.LENGTH = (v: string) => v.length
 
-exports.LOWER = (v) => v.toLowerCase()
+exports.LOWER = (v: string) => v.toLowerCase()
 
-exports.REVERSE = (v) => v.split('').reverse().join('')
+exports.REVERSE = (v: string) => v.split('').reverse().join('')
 
-exports.ROUND = (v) => Math.round(v)
+exports.ROUND = (v: number) => Math.round(v)
 
-exports.STARTSWITH = (a, b) => a.startsWith(b)
+exports.STARTSWITH = (a: string, b: string) => a.startsWith(b)
 
-exports.SUBSTRING = (a, b, c) => a.substring(b, c ? b + c : undefined)
+exports.SUBSTRING = (a: string, b: number, c?: number) => a.substring(b, c != null ? b + c : undefined)
 
-exports.ToString = (v) => typeof v === 'undefined' ? undefined : String(v)
+exports.ToString = (v?: number | string | boolean) => typeof v === 'undefined' ? undefined : String(v)
 
-exports.TRIM = (v) => v.trim()
+exports.TRIM = (v: string) => v.trim()
 
-exports.UPPER = (v) => v.toUpperCase()
+exports.UPPER = (v: string) => v.toUpperCase()

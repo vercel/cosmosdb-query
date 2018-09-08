@@ -406,7 +406,7 @@ exports.builtInArrayFunction1 = testQuery(
     `
   },
   collection
-    .filter((Families) => Families.parents.some((v) => v.givenName === 'Robin' && v.familyName === 'Wakefield'))
+    .filter((Families) => Families.parents.some((v: Object) => v.givenName === 'Robin' && v.familyName === 'Wakefield'))
     .map((Families) => ({ id: Families.id }))
 );
 

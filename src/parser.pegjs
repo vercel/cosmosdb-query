@@ -14,6 +14,7 @@
     "OR",
     "ORDER",
     "SELECT",
+    "TOP",
     "VALUE",
     "WHERE"
   ])
@@ -29,13 +30,16 @@
 }
 
 select_query
-  = select _ select:select_specification _
+  = select _
+    top:(top _ v:top_specification { return v })? _
+    select:select_specification _
     from:(from _ v:from_specification { return v })? _
     where:(where _ v:filter_condition { return v })? _
     orderBy:(order _ by _ v:sort_specification { return v })? _
     {
       return {
         type: 'select_query',
+        top,
         select,
         from,
         where,
@@ -279,6 +283,7 @@ comment
   = "--" (![\n\r] source_character)*
 
 select = "SELECT"i !identifier_start
+top = "TOP"i !identifier_start
 from = "FROM"i !identifier_start
 where = "WHERE"i !identifier_start
 order = "ORDER"i !identifier_start
@@ -324,7 +329,7 @@ array_index
     {
       return {
         type: 'number_constant',
-        value: text()
+        value: Number(text())
       }
     }
 
@@ -514,4 +519,13 @@ collection_member_expression
         property,
         computed
       }), head)
+    }
+
+top_specification
+  = value:[0-9]+
+    {
+      return {
+        type: 'top_specification',
+        value: Number(value)
+      }
     }

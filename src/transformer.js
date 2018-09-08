@@ -169,13 +169,13 @@ const definitions = {
 
   object_constant(ctx, { properties }) {
     return {
-      type: 'ObjectExpression',
+      type: "ObjectExpression",
       properties: properties.map(({ key, value }) => ({
-        type: 'ObjectProperty',
+        type: "ObjectProperty",
         key: transform(ctx, key),
         value: transform(ctx, value)
       }))
-    }
+    };
   },
 
   object_property_list(ctx, { properties }) {
@@ -249,7 +249,7 @@ const definitions = {
 
   scalar_function_expression(ctx, { name, arguments: args, udf }) {
     return {
-      type: 'CallExpression',
+      type: "CallExpression",
       callee: {
         type: "MemberExpression",
         object: {
@@ -258,8 +258,8 @@ const definitions = {
         },
         property: transform(ctx, name)
       },
-      arguments: args.map((a) => transform(ctx, a))
-    }
+      arguments: args.map(a => transform(ctx, a))
+    };
   },
 
   scalar_member_expression(ctx, { object, property, computed }) {
@@ -291,7 +291,7 @@ const definitions = {
     };
   },
 
-  select_query(ctx, { select, from, where, orderBy }) {
+  select_query(ctx, { top, select, from, where, orderBy }) {
     const name = "$c";
 
     if (from) {
@@ -321,6 +321,10 @@ const definitions = {
 
     if (orderBy) {
       ctx.ast = transform(ctx, orderBy);
+    }
+
+    if (top) {
+      ctx.ast = transform(ctx, top);
     }
 
     ctx.ast = transform(ctx, select);
@@ -487,6 +491,30 @@ const definitions = {
     return {
       type: "StringLiteral",
       value
+    };
+  },
+
+  top_specification(ctx, { value }) {
+    return {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: ctx.ast,
+        property: {
+          type: "Identifier",
+          name: "slice"
+        }
+      },
+      arguments: [
+        {
+          type: "NumericLiteral",
+          value: 0
+        },
+        {
+          type: "NumericLiteral",
+          value
+        }
+      ]
     };
   },
 

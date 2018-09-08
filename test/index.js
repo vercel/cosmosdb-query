@@ -306,7 +306,7 @@ exports.valueKeyword2 = testQuery(
       FROM Families f
     `
   },
-  collection.map((f) => f.address)
+  collection.map(f => f.address)
 );
 
 exports.valueKeyword3 = testQuery(
@@ -317,7 +317,30 @@ exports.valueKeyword3 = testQuery(
       FROM Families f
     `
   },
-  collection.map((f) => f.address.state)
+  collection.map(f => f.address.state)
+);
+
+exports.asteriskOperator = testQuery(
+  collection,
+  {
+    query: `
+      SELECT *
+      FROM Families f
+      WHERE f.id = "AndersenFamily"
+    `
+  },
+  collection.filter(f => f.id === "AndersenFamily")
+);
+
+exports.topOperator = testQuery(
+  collection,
+  {
+    query: `
+      SELECT TOP 1 *
+      FROM Families f
+    `
+  },
+  collection.slice(0, 1)
 );
 
 exports.orderByClause1 = testQuery(
@@ -331,12 +354,12 @@ exports.orderByClause1 = testQuery(
   },
   [
     {
-      "id": "WakefieldFamily",
-      "city": "NY"
+      id: "WakefieldFamily",
+      city: "NY"
     },
     {
-      "id": "AndersenFamily",
-      "city": "seattle"
+      id: "AndersenFamily",
+      city: "seattle"
     }
   ]
 );
@@ -352,12 +375,12 @@ exports.orderByClause2 = testQuery(
   },
   [
     {
-      "id": "AndersenFamily",
-      "creationDate": 1431620472
+      id: "AndersenFamily",
+      creationDate: 1431620472
     },
     {
-      "id": "WakefieldFamily",
-      "creationDate": 1431620462
+      id: "WakefieldFamily",
+      creationDate: 1431620462
     }
   ]
 );
@@ -410,7 +433,7 @@ exports.builtInStringFunction1 = testQuery(
       FROM Families
     `
   },
-  collection.map((Families) => Families.id.toUpperCase())
+  collection.map(Families => Families.id.toUpperCase())
 );
 
 exports.builtInStringFunction2 = testQuery(
@@ -421,7 +444,10 @@ exports.builtInStringFunction2 = testQuery(
       FROM Families
     `
   },
-  collection.map((Families) => ({ id: Families.id, location: `${Families.address.city},${Families.address.state}` }))
+  collection.map(Families => ({
+    id: Families.id,
+    location: `${Families.address.city},${Families.address.state}`
+  }))
 );
 
 exports.builtInStringFunction3 = testQuery(
@@ -434,8 +460,8 @@ exports.builtInStringFunction3 = testQuery(
     `
   },
   collection
-    .filter((Families) => Families.id.startsWith("Wakefield"))
-    .map((Families) => ({ id: Families.id, city: Families.address.city }))
+    .filter(Families => Families.id.startsWith("Wakefield"))
+    .map(Families => ({ id: Families.id, city: Families.address.city }))
 );
 
 exports.builtInArrayFunction1 = testQuery(
@@ -448,8 +474,12 @@ exports.builtInArrayFunction1 = testQuery(
     `
   },
   collection
-    .filter((Families) => Families.parents.some((v: Object) => v.givenName === 'Robin' && v.familyName === 'Wakefield'))
-    .map((Families) => ({ id: Families.id }))
+    .filter(Families =>
+      Families.parents.some(
+        (v: Object) => v.givenName === "Robin" && v.familyName === "Wakefield"
+      )
+    )
+    .map(Families => ({ id: Families.id }))
 );
 
 exports.builtInArrayFunction2 = testQuery(
@@ -460,5 +490,8 @@ exports.builtInArrayFunction2 = testQuery(
       FROM Families
     `
   },
-  collection.map((Families) => ({ id: Families.id, numberOfChildren: Families.children.length }))
+  collection.map(Families => ({
+    id: Families.id,
+    numberOfChildren: Families.children.length
+  }))
 );

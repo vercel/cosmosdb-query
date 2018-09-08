@@ -3,27 +3,31 @@
 
 const testQuery = require("./utils/test-query");
 
-const test = (query, expected) => testQuery(null, { query }, expected)
+const test = (query, expected) => testQuery(null, { query }, expected);
 
-exports.CEILING = test(`
+exports.CEILING = test(
+  `
     SELECT CEILING(123.45), CEILING(-123.45), CEILING(0.0)
   `,
-  [{$1: 124, $2: -123, $3: 0}]
+  [{ $1: 124, $2: -123, $3: 0 }]
 );
 
-exports.FLOOR = test(`
+exports.FLOOR = test(
+  `
     SELECT FLOOR(123.45), FLOOR(-123.45), FLOOR(0.0)
   `,
-  [{$1: 123, $2: -124, $3: 0}]
+  [{ $1: 123, $2: -124, $3: 0 }]
 );
 
-exports.ROUND = test(`
+exports.ROUND = test(
+  `
     SELECT ROUND(2.4), ROUND(2.6), ROUND(2.5), ROUND(-2.4), ROUND(-2.6)
   `,
-  [{$1: 2, $2: 3, $3: 3, $4: -2, $5: -3}]
+  [{ $1: 2, $2: 3, $3: 3, $4: -2, $5: -3 }]
 );
 
-exports.IS_ARRAY = test(`
+exports.IS_ARRAY = test(
+  `
   SELECT
     IS_ARRAY(true),
     IS_ARRAY(1),
@@ -33,10 +37,21 @@ exports.IS_ARRAY = test(`
     IS_ARRAY([1, 2, 3]),
     IS_ARRAY({prop: "value"}.prop2)
   `,
-  [{$1: false, $2: false, $3: false, $4: false, $5: false, $6: true, $7: false}]
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: false,
+      $4: false,
+      $5: false,
+      $6: true,
+      $7: false
+    }
+  ]
 );
 
-exports.IS_BOOL = test(`
+exports.IS_BOOL = test(
+  `
     SELECT
       IS_BOOL(true),
       IS_BOOL(1),
@@ -46,19 +61,33 @@ exports.IS_BOOL = test(`
       IS_BOOL([1, 2, 3]),
       IS_BOOL({prop: "value"}.prop2)
   `,
-  [{$1: true, $2: false, $3: false, $4: false, $5: false, $6: false, $7: false}]
+  [
+    {
+      $1: true,
+      $2: false,
+      $3: false,
+      $4: false,
+      $5: false,
+      $6: false,
+      $7: false
+    }
+  ]
 );
 
-exports.IS_DEFINED = test(`
+exports.IS_DEFINED = test(
+  `
     SELECT IS_DEFINED({ "a" : 5 }.a), IS_DEFINED({ "a" : 5 }.b)
   `,
-  [{
-    "$1": true,
-    "$2": false
-  }]
+  [
+    {
+      $1: true,
+      $2: false
+    }
+  ]
 );
 
-exports.IS_NULL = test(`
+exports.IS_NULL = test(
+  `
     SELECT
       IS_NULL(true),
       IS_NULL(1),
@@ -68,10 +97,21 @@ exports.IS_NULL = test(`
       IS_NULL([1, 2, 3]),
       IS_NULL({prop: "value"}.prop2)
   `,
-  [{$1: false, $2: false, $3: false, $4: true, $5: false, $6: false, $7: false}]
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: false,
+      $4: true,
+      $5: false,
+      $6: false,
+      $7: false
+    }
+  ]
 );
 
-exports.IS_NUMBER = test(`
+exports.IS_NUMBER = test(
+  `
     SELECT
       IS_NUMBER(true),
       IS_NUMBER(1),
@@ -81,10 +121,21 @@ exports.IS_NUMBER = test(`
       IS_NUMBER([1, 2, 3]),
       IS_NUMBER({prop: "value"}.prop2)
   `,
-  [{$1: false, $2: true, $3: false, $4: false, $5: false, $6: false, $7: false}]
+  [
+    {
+      $1: false,
+      $2: true,
+      $3: false,
+      $4: false,
+      $5: false,
+      $6: false,
+      $7: false
+    }
+  ]
 );
 
-exports.IS_OBJECT = test(`
+exports.IS_OBJECT = test(
+  `
     SELECT
       IS_OBJECT(true),
       IS_OBJECT(1),
@@ -94,10 +145,21 @@ exports.IS_OBJECT = test(`
       IS_OBJECT([1, 2, 3]),
       IS_OBJECT({prop: "value"}.prop2)
   `,
-  [{$1: false, $2: false, $3: false, $4: false, $5: true, $6: false, $7: false}]
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: false,
+      $4: false,
+      $5: true,
+      $6: false,
+      $7: false
+    }
+  ]
 );
 
-exports.IS_PRIMITIVE = test(`
+exports.IS_PRIMITIVE = test(
+  `
     SELECT
       IS_PRIMITIVE(true),
       IS_PRIMITIVE(1),
@@ -107,10 +169,11 @@ exports.IS_PRIMITIVE = test(`
       IS_PRIMITIVE([1, 2, 3]),
       IS_PRIMITIVE({prop: "value"}.prop2)
   `,
-  [{"$1": true, "$2": true, "$3": true, "$4": true, "$5": false, "$6": false, "$7": false}]
+  [{ $1: true, $2: true, $3: true, $4: true, $5: false, $6: false, $7: false }]
 );
 
-exports.IS_STRING = test(`
+exports.IS_STRING = test(
+  `
     SELECT
       IS_STRING(true),
       IS_STRING(1),
@@ -120,66 +183,105 @@ exports.IS_STRING = test(`
       IS_STRING([1, 2, 3]),
       IS_STRING({prop: "value"}.prop2)
   `,
-  [{$1: false, $2: false, $3: true, $4: false, $5: false, $6: false, $7: false}]
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: true,
+      $4: false,
+      $5: false,
+      $6: false,
+      $7: false
+    }
+  ]
 );
 
-exports.CONCAT = test(`
+exports.CONCAT = test(
+  `
     SELECT CONCAT("abc", "def")
   `,
-  [{"$1": "abcdef"}]
+  [{ $1: "abcdef" }]
 );
 
-exports.CONTAINS = test(`
+exports.CONTAINS = test(
+  `
     SELECT CONTAINS("abc", "ab"), CONTAINS("abc", "d")
   `,
-  [{"$1": true, "$2": false}]
+  [{ $1: true, $2: false }]
 );
 
-exports.INDEX_OF = test(`
+exports.INDEX_OF = test(
+  `
     SELECT INDEX_OF("abc", "ab"), INDEX_OF("abc", "b"), INDEX_OF("abc", "d")
   `,
-  [{"$1": 0, "$2": 1, "$3": -1}]
+  [{ $1: 0, $2: 1, $3: -1 }]
 );
 
-exports.LENGTH = test(`
+exports.LENGTH = test(
+  `
     SELECT LENGTH("abc")
   `,
-  [{"$1": 3}]
+  [{ $1: 3 }]
 );
 
-exports.LOWER = test(`
+exports.LOWER = test(
+  `
     SELECT LOWER("Abc")
   `,
-  [{"$1": "abc"}]
+  [{ $1: "abc" }]
 );
 
-exports.REVERSE = test(`
+exports.REVERSE = test(
+  `
     SELECT REVERSE("Abc")
   `,
-  [{"$1": "cbA"}]
+  [{ $1: "cbA" }]
 );
 
-exports.STARTSWITH = test(`
+exports.STARTSWITH = test(
+  `
     SELECT STARTSWITH("abc", "b"), STARTSWITH("abc", "a")
   `,
-  [{"$1": false, "$2": true}]
+  [{ $1: false, $2: true }]
 );
 
-exports.SUBSTRING = test(`
+exports.SUBSTRING = test(
+  `
     SELECT SUBSTRING("abc", 1, 1)
   `,
-  [{"$1": "b"}]
+  [{ $1: "b" }]
 );
 
-exports.ToString1 = test(`
+exports.ToString1 = test(
+  `
     SELECT ToString(1.0000), ToString("Hello World"), ToString(NaN), ToString(Infinity),
     ToString(IS_STRING(ToString(undefined))), IS_STRING(ToString(0.1234)), ToString(false), ToString(undefined)
   `,
-  [{"$1": "1", "$2": "Hello World", "$3": "NaN", "$4": "Infinity", "$5": "false", "$6": true, "$7": "false", "$8": undefined}]
+  [
+    {
+      $1: "1",
+      $2: "Hello World",
+      $3: "NaN",
+      $4: "Infinity",
+      $5: "false",
+      $6: true,
+      $7: "false",
+      $8: undefined
+    }
+  ]
 );
 
 exports.ToString2 = testQuery(
-  [{"Products":[{"ProductID":1,"Weight":4,"WeightUnits":"lb"},{"ProductID":2,"Weight":32,"WeightUnits":"kg"},{"ProductID":3,"Weight":400,"WeightUnits":"g"},{"ProductID":4,"Weight":8999,"WeightUnits":"mg"}]}],
+  [
+    {
+      Products: [
+        { ProductID: 1, Weight: 4, WeightUnits: "lb" },
+        { ProductID: 2, Weight: 32, WeightUnits: "kg" },
+        { ProductID: 3, Weight: 400, WeightUnits: "g" },
+        { ProductID: 4, Weight: 8999, WeightUnits: "mg" }
+      ]
+    }
+  ],
   {
     query: `
       SELECT
@@ -187,51 +289,56 @@ exports.ToString2 = testQuery(
       FROM p in c.Products
     `
   },
-  [{"$1":"4lb" },
-   {"$1":"32kg"},
-   {"$1":"400g" },
-   {"$1":"8999mg"}]
+  [{ $1: "4lb" }, { $1: "32kg" }, { $1: "400g" }, { $1: "8999mg" }]
 );
 
-exports.TRIM = test(`
+exports.TRIM = test(
+  `
     SELECT TRIM("   abc"), TRIM("   abc   "), TRIM("abc   "), TRIM("abc")
   `,
-  [{"$1": "abc", "$2": "abc", "$3": "abc", "$4": "abc"}]
+  [{ $1: "abc", $2: "abc", $3: "abc", $4: "abc" }]
 );
 
-exports.UPPER = test(`
+exports.UPPER = test(
+  `
     SELECT UPPER("Abc")
   `,
-  [{"$1": "ABC"}]
+  [{ $1: "ABC" }]
 );
 
-exports.ARRAY_CONCAT = test(`
+exports.ARRAY_CONCAT = test(
+  `
     SELECT ARRAY_CONCAT(["apples", "strawberries"], ["bananas"])
   `,
-  [{"$1": ["apples", "strawberries", "bananas"]}]
+  [{ $1: ["apples", "strawberries", "bananas"] }]
 );
 
-exports.ARRAY_CONTAINS = test(`
+exports.ARRAY_CONTAINS = test(
+  `
     SELECT
       ARRAY_CONTAINS(["apples", "strawberries", "bananas"], "apples"),
       ARRAY_CONTAINS(["apples", "strawberries", "bananas"], "mangoes")
   `,
-  [{"$1": true, "$2": false}]
+  [{ $1: true, $2: false }]
 );
 
-exports.ARRAY_LENGTH = test(`
+exports.ARRAY_LENGTH = test(
+  `
     SELECT ARRAY_LENGTH(["apples", "strawberries", "bananas"])
   `,
-  [{"$1": 3}]
+  [{ $1: 3 }]
 );
 
-exports.ARRAY_SLICE = test(`
+exports.ARRAY_SLICE = test(
+  `
     SELECT
       ARRAY_SLICE(["apples", "strawberries", "bananas"], 1),
       ARRAY_SLICE(["apples", "strawberries", "bananas"], 1, 1)
   `,
-  [{
-    "$1": ["strawberries", "bananas"],
-    "$2": ["strawberries"]
-  }]
+  [
+    {
+      $1: ["strawberries", "bananas"],
+      $2: ["strawberries"]
+    }
+  ]
 );

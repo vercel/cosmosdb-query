@@ -141,8 +141,33 @@ scalar_expression
   = scalar_conditional_expression
 
 scalar_function_expression
-  = "udf." identifier _ "(" _ (scalar_expression (_ "," _ scalar_expression))? _ ")"
-  / identifier _ "(" _ (scalar_expression (_ "," _ scalar_expression))? _ ")"
+  = udf _ "." _ name:identifier _ "(" _
+      args:(
+        head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
+        { return [head, ...tail] }
+      )?
+    _ ")"
+    {
+      return {
+        type: 'scalar_function_expression',
+        name,
+        arguments: args,
+        udf: true
+      }
+    }
+  / name:identifier _ "(" _
+      args:(
+        head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
+        { return [head, ...tail] }
+      )?
+    _ ")"
+    {
+      return {
+        type: 'scalar_function_expression',
+        name,
+        arguments: args
+      }
+    }
 
 scalar_object_expression
   = "{" _
@@ -161,7 +186,7 @@ scalar_array_expression
     {
       return {
         type: "scalar_array_expression",
-        values: [head, ...tail]
+        elements: [head, ...tail]
       }
     }
 
@@ -179,18 +204,18 @@ undefined_constant
     { return { type: 'undefined_constant' } }
 
 null_constant
-  = "null"
+  = null
     { return { type: 'null_constant' } }
 
 boolean_constant
-  = "false"
+  = false
     {
       return {
         type: 'boolean_constant',
         value: false
       }
     }
-  / "true"
+  / true
     {
       return {
         type: 'boolean_constant',
@@ -224,11 +249,11 @@ string_constant
     }
 
 array_constant
-  = "[" _ head:constant tail:(_ "," _ v:constant { return v })? _ "]"
+  = "[" _ head:constant tail:(_ "," _ v:constant { return v })* _ "]"
     {
       return {
         type: "array_constant",
-        values: [head, ...tail]
+        elements: [head, ...tail]
       }
     }
 
@@ -267,6 +292,10 @@ desc = "DESC"i !identifier_start { return "DESC" }
 and = "AND"i !identifier_start { return "AND" }
 or = "OR"i !identifier_start { return "OR" }
 not = "NOT"i !identifier_start { return "NOT" }
+null = "null" !identifier_start
+true = "true" !identifier_start
+false = "false" !identifier_start
+udf = "udf" !identifier_start
 
 identifier
   = name:(head:identifier_start tail:[a-zA-Z0-9_]* { return head + tail.join('') })
@@ -361,7 +390,6 @@ scalar_primary_expression
   / scalar_object_expression
   / "(" _ expression:scalar_expression _ ")"
     { return expression }
-  / scalar_function_expression
 
 scalar_member_expression
   = head:scalar_primary_expression
@@ -381,7 +409,8 @@ scalar_member_expression
     }
 
 scalar_unary_expression
-  = scalar_member_expression
+  = scalar_function_expression
+  / scalar_member_expression
   / operator:unary_operator _ argument:scalar_unary_expression
     {
       return {

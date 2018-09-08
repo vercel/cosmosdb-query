@@ -1,4 +1,5 @@
 // @flow
+const builtinFunctions = require("./builtin-functions");
 
 module.exports = (
   collection: any[],
@@ -16,5 +17,5 @@ module.exports = (
   });
 
   // $FlowFixMe
-  return execute(collection, params);
+  return execute(builtinFunctions, collection, params);
 };

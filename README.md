@@ -29,8 +29,6 @@ if (!q.containsPartitionKeys(['/key'])) {
 - TOP operator
 - JOIN keyword
 - IN keyword
-- Built-in functions
-- Object constant
-- Array constant
+- Some Built-in functions (See [src/builtin-functions.js](https://github.com/zeit/cosmosdb-query/blob/master/src/builtin-functions.js) for supported functions)
 - Coalesce operator
 - User-defined functions

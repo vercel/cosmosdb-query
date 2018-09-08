@@ -1,4 +1,6 @@
 // @flow
+// test examples on https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query
+
 const testQuery = require("./utils/test-query");
 
 const collection = [
@@ -344,4 +346,77 @@ exports.parameterized = testQuery(
     ]
   },
   collection.filter(f => f.lastName === "Wakefield" && f.address.state === "NY")
+);
+
+exports.builtInMathematicalFunction = testQuery(
+  null,
+  { query: "SELECT VALUE ABS(-4)" },
+  [4]
+);
+
+exports.builtInTypeCheckingFunction = testQuery(
+  null,
+  { query: "SELECT VALUE IS_NUMBER(-4)" },
+  [true]
+);
+
+exports.builtInStringFunction1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT VALUE UPPER(Families.id)
+      FROM Families
+    `
+  },
+  collection.map((Families) => Families.id.toUpperCase())
+);
+
+exports.builtInStringFunction2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT Families.id, CONCAT(Families.address.city, ",", Families.address.state) AS location
+      FROM Families
+    `
+  },
+  collection.map((Families) => ({ id: Families.id, location: `${Families.address.city},${Families.address.state}` }))
+);
+
+exports.builtInStringFunction3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT Families.id, Families.address.city
+      FROM Families
+      WHERE STARTSWITH(Families.id, "Wakefield")
+    `
+  },
+  collection
+    .filter((Families) => Families.id.startsWith("Wakefield"))
+    .map((Families) => ({ id: Families.id, city: Families.address.city }))
+);
+
+exports.builtInArrayFunction1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT Families.id
+      FROM Families
+      WHERE ARRAY_CONTAINS(Families.parents, { givenName: "Robin", familyName: "Wakefield" })
+    `
+  },
+  collection
+    .filter((Families) => Families.parents.some((v) => v.givenName === 'Robin' && v.familyName === 'Wakefield'))
+    .map((Families) => ({ id: Families.id }))
+);
+
+exports.builtInArrayFunction2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT Families.id, ARRAY_LENGTH(Families.children) AS numberOfChildren
+      FROM Families
+    `
+  },
+  collection.map((Families) => ({ id: Families.id, numberOfChildren: Families.children.length }))
 );

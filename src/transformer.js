@@ -16,6 +16,13 @@ function clone(node) {
 }
 
 const definitions = {
+  array_constant(ctx, { elements }) {
+    return {
+      type: "ArrayExpression",
+      elements: elements.map(v => transform(ctx, v))
+    };
+  },
+
   boolean_constant(ctx, { value }) {
     return {
       type: "BooleanLiteral",
@@ -160,6 +167,17 @@ const definitions = {
     };
   },
 
+  object_constant(ctx, { properties }) {
+    return {
+      type: 'ObjectExpression',
+      properties: properties.map(({ key, value }) => ({
+        type: 'ObjectProperty',
+        key: transform(ctx, key),
+        value: transform(ctx, value)
+      }))
+    }
+  },
+
   object_property_list(ctx, { properties }) {
     return {
       type: "ObjectExpression",
@@ -190,10 +208,10 @@ const definitions = {
     };
   },
 
-  scalar_array_expression(ctx, { values }) {
+  scalar_array_expression(ctx, { elements }) {
     return {
       type: "ArrayExpression",
-      elements: values.map(v => transform(ctx, v))
+      elements: elements.map(v => transform(ctx, v))
     };
   },
 
@@ -227,6 +245,21 @@ const definitions = {
       consequent: transform(ctx, consequent),
       alternate: transform(ctx, alternate)
     };
+  },
+
+  scalar_function_expression(ctx, { name, arguments: args, udf }) {
+    return {
+      type: 'CallExpression',
+      callee: {
+        type: "MemberExpression",
+        object: {
+          type: "Identifier",
+          name: udf ? "udf" : "$b"
+        },
+        property: transform(ctx, name)
+      },
+      arguments: args.map((a) => transform(ctx, a))
+    }
   },
 
   scalar_member_expression(ctx, { object, property, computed }) {
@@ -295,10 +328,17 @@ const definitions = {
     return {
       type: "ArrowFunctionExpression",
       params: [
+        // built-int functions
+        {
+          type: "Identifier",
+          name: "$b"
+        },
+        // document array (collection)
         {
           type: "Identifier",
           name
         },
+        // parameters
         {
           type: "Identifier",
           name: "$p"

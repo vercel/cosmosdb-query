@@ -27,7 +27,6 @@ if (!q.containsPartitionKeys(['/key'])) {
 - Aggregate functions
 - BETWEEN keyword
 - TOP operator
-- VALUE keyword
 - JOIN keyword
 - IN keyword
 - Built-in functions

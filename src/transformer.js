@@ -308,12 +308,12 @@ const definitions = {
     };
   },
 
-  select_specification(ctx, { "*": all, properties }) {
+  select_specification(ctx, { "*": all, properties, value }) {
     if (all) {
       return ctx.ast;
     }
 
-    if (properties) {
+    if (properties || value) {
       return {
         type: "CallExpression",
         callee: {
@@ -328,7 +328,7 @@ const definitions = {
           {
             type: "ArrowFunctionExpression",
             params: ctx.document ? [ctx.document] : [],
-            body: transform(ctx, properties)
+            body: transform(ctx, properties || value)
           }
         ]
       };

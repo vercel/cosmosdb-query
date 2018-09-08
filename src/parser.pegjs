@@ -2,19 +2,20 @@
 
 {
   const reserved = new Set([
-    "SELECT",
-    "FROM",
-    "WHERE",
-    "ORDER",
-    "BY",
+    "AND",
     "AS",
+    "ASC",
+    "BY",
+    "DESC",
+    "FROM",
     "IN",
     "JOIN",
-    "ASC",
-    "DESC",
-    "AND",
+    "NOT",
     "OR",
-    "NOT"
+    "ORDER",
+    "SELECT",
+    "VALUE",
+    "WHERE"
   ])
 
   function buildBinaryExpression(head, tail) {
@@ -57,12 +58,11 @@ select_specification
         properties
       }
     }
-  / "VALUE"i _ value:scalar_expression _ alias:((as)? _ v:identifier { return v })?
+  / value _ value:scalar_expression
     {
       return {
         type: 'select_specification',
-        value,
-        alias
+        value
       }
     }
 
@@ -261,6 +261,7 @@ by = "BY"i !identifier_start
 as = "AS"i !identifier_start
 join = "JOIN"i !identifier_start
 in = "IN"i !identifier_start
+value = "VALUE"i !identifier_start
 asc = "ASC"i !identifier_start { return "ASC" }
 desc = "DESC"i !identifier_start { return "DESC" }
 and = "AND"i !identifier_start { return "AND" }

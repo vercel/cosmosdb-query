@@ -253,13 +253,13 @@ exports.aliasing = testQuery(
 );
 
 exports.scalarExpressions1 = testQuery(
-  collection,
+  null,
   { query: 'SELECT "Hello World"' },
   [{ $1: "Hello World" }]
 );
 
 exports.scalarExpressions2 = testQuery(
-  collection,
+  null,
   { query: "SELECT ((2 + 11 % 7)-2)/3" },
   [{ $1: (2 + (11 % 7) - 2) / 3 }]
 );
@@ -286,6 +286,36 @@ exports.objectAndArrayCreation = testQuery(
     `
   },
   collection.map(f => ({ CityState: [f.address.city, f.address.state] }))
+);
+
+exports.valueKeyword1 = testQuery(
+  null,
+  {
+    query: 'SELECT VALUE "Hello World"'
+  },
+  ["Hello World"]
+);
+
+exports.valueKeyword2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT VALUE f.address
+      FROM Families f
+    `
+  },
+  collection.map((f) => f.address)
+);
+
+exports.valueKeyword3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT VALUE f.address.state
+      FROM Families f
+    `
+  },
+  collection.map((f) => f.address.state)
 );
 
 exports.fromIn = testQuery(

@@ -320,6 +320,48 @@ exports.valueKeyword3 = testQuery(
   collection.map((f) => f.address.state)
 );
 
+exports.orderByClause1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id, f.address.city
+      FROM Families f
+      ORDER BY f.address.city
+    `
+  },
+  [
+    {
+      "id": "WakefieldFamily",
+      "city": "NY"
+    },
+    {
+      "id": "AndersenFamily",
+      "city": "seattle"
+    }
+  ]
+);
+
+exports.orderByClause2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id, f.creationDate
+      FROM Families f
+      ORDER BY f.creationDate DESC
+    `
+  },
+  [
+    {
+      "id": "AndersenFamily",
+      "creationDate": 1431620472
+    },
+    {
+      "id": "WakefieldFamily",
+      "creationDate": 1431620462
+    }
+  ]
+);
+
 exports.fromIn = testQuery(
   collection,
   { query: "SELECT * FROM c IN Families.children" },

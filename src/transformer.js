@@ -382,7 +382,18 @@ const definitions = {
       type: "CallExpression",
       callee: {
         type: "MemberExpression",
-        object: ctx.ast,
+        object: {
+          type: "CallExpression",
+          callee: {
+            type: "MemberExpression",
+            object: ctx.ast,
+            property: {
+              type: "Identifier",
+              name: "slice"
+            }
+          },
+          arguments: []
+        },
         property: {
           type: "Identifier",
           name: "sort"

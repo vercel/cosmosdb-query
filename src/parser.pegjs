@@ -441,7 +441,7 @@ scalar_conditional_expression
 
 scalar_binary_or_expression
   = head:(scalar_binary_and_expression)
-    tail:(_ or _ scalar_binary_and_expression)*
+    tail:(_ (or / "??") _ scalar_binary_and_expression)*
     { return buildBinaryExpression(head, tail) }
 
 scalar_binary_and_expression

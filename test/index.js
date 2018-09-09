@@ -196,7 +196,7 @@ exports.unaryOperator2 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => -c.grade === -5)
 );
 
-exports.conditionalExpression1 = testQuery(
+exports.ternaryOperator1 = testQuery(
   collection,
   {
     query: `
@@ -209,7 +209,7 @@ exports.conditionalExpression1 = testQuery(
     .map(c => ({ gradeLevel: c.grade < 5 ? "elementary" : "other" }))
 );
 
-exports.conditionalExpression2 = testQuery(
+exports.ternaryOperator2 = testQuery(
   collection,
   {
     query: `
@@ -221,6 +221,17 @@ exports.conditionalExpression2 = testQuery(
     // eslint-disable-next-line no-nested-ternary
     gradeLevel: c.grade < 5 ? "elementary" : c.grade < 9 ? "junior" : "high"
   }))
+);
+
+exports.coalesceOperator = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.lastName ?? f.surname AS familyName
+      FROM Families f
+    `
+  },
+  collection.map((f: Object) => ({ familyName: f.lastName || f.surname }))
 );
 
 exports.quotedPropertyAccessor = testQuery(

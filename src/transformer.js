@@ -226,15 +226,37 @@ const definitions = {
         OR: "||"
       }[operator] || operator;
 
+    const l = transform(ctx, left);
+    const r = transform(ctx, right);
+
     if (op === "??") {
-      throw new Error("The operator ?? is not supported yet");
+      // `typeof left !== "undefined" ? left : right`
+      return {
+        type: "ConditionalExpression",
+        test: {
+          type: "BinaryExpression",
+          left: {
+            type: "UnaryExpression",
+            operator: "typeof",
+            prefix: true,
+            argument: l
+          },
+          operator: "!==",
+          right: {
+            type: "StringLiteral",
+            value: "undefined"
+          }
+        },
+        consequent: l,
+        alternate: r
+      };
     }
 
     return {
       type: "BinaryExpression",
-      left: transform(ctx, left),
+      left: l,
       operator: op,
-      right: transform(ctx, right)
+      right: r
     };
   },
 

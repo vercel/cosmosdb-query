@@ -354,6 +354,40 @@ exports.topOperator = testQuery(
   collection.slice(0, 1)
 );
 
+exports.aggregateFunctions1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT COUNT(1)
+      FROM Families f
+    `
+  },
+  [{ $1: 2 }]
+);
+
+exports.aggregateFunctions2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT VALUE COUNT(1)
+      FROM Families f
+    `
+  },
+  [2]
+);
+
+exports.aggregateFunctions3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT VALUE COUNT(1)
+      FROM Families f
+      WHERE f.address.state = "WA"
+    `
+  },
+  [1]
+);
+
 exports.orderByClause1 = testQuery(
   collection,
   {

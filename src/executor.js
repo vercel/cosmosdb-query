@@ -1,4 +1,5 @@
 // @flow
+const aggregateFunctions = require("./aggregate-functions");
 const builtinFunctions = require("./builtin-functions");
 
 module.exports = (
@@ -17,5 +18,5 @@ module.exports = (
   });
 
   // $FlowFixMe
-  return execute(builtinFunctions, collection, params);
+  return execute(aggregateFunctions, builtinFunctions, collection, params);
 };

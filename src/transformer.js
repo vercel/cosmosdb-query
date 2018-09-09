@@ -1,5 +1,6 @@
 // @flow
 const { default: traverse } = require("@babel/traverse");
+const aggregateFunctions = require("./aggregate-functions");
 
 function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   // eslint-disable-next-line no-use-before-define
@@ -13,6 +14,18 @@ function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
 
 function clone(node) {
   return JSON.parse(JSON.stringify(node));
+}
+
+function isAggregateFunction({ type, name, udf }) {
+  return (
+    type === "scalar_function_expression" &&
+    // $FlowFixMe
+    Object.protorype.hasOwnProperty.call(
+      aggregateFunctions,
+      name.name.toUpperCase()
+    ) &&
+    !udf
+  );
 }
 
 const definitions = {
@@ -179,15 +192,17 @@ const definitions = {
   },
 
   object_property_list(ctx, { properties }) {
+    let n = 0;
     return {
       type: "ObjectExpression",
-      properties: properties.map(({ property, alias }, i) => {
+      properties: properties.map(({ property, alias }) => {
         const key = alias || property.property;
         return {
           type: "ObjectProperty",
           key: key
             ? transform(ctx, key)
-            : { type: "Identifier", name: `$${i + 1}` },
+            : // eslint-disable-next-line no-plusplus
+              { type: "Identifier", name: `$${++n}` },
           value: transform(ctx, property)
         };
       })
@@ -269,18 +284,44 @@ const definitions = {
     };
   },
 
-  scalar_function_expression(ctx, { name, arguments: args, udf }) {
+  scalar_function_expression(ctx, { type, name, arguments: args, udf }) {
+    const aggregation =
+      ctx.aggregation && isAggregateFunction({ type, name, udf });
+
     return {
       type: "CallExpression",
       callee: {
         type: "MemberExpression",
         object: {
           type: "Identifier",
-          name: udf ? "udf" : "$b"
+          // eslint-disable-next-line no-nested-ternary
+          name: udf ? "udf" : aggregation ? "$a" : "$b"
         },
         property: transform(ctx, name)
       },
-      arguments: args.map(a => transform(ctx, a))
+      arguments: aggregation
+        ? args.map(a => ({
+            type: "CallExpression",
+            callee: {
+              type: "MemberExpression",
+              object: {
+                type: "Identifier",
+                name: "$"
+              },
+              property: {
+                type: "Identifier",
+                name: "map"
+              }
+            },
+            arguments: [
+              {
+                type: "ArrowFunctionExpression",
+                params: ctx.document ? [ctx.document] : [],
+                body: transform(ctx, a)
+              }
+            ]
+          }))
+        : args.map(a => transform(ctx, a))
     };
   },
 
@@ -354,7 +395,12 @@ const definitions = {
     return {
       type: "ArrowFunctionExpression",
       params: [
-        // built-int functions
+        // aggregate functions
+        {
+          type: "Identifier",
+          name: "$a"
+        },
+        // built-in functions
         {
           type: "Identifier",
           name: "$b"
@@ -368,6 +414,11 @@ const definitions = {
         {
           type: "Identifier",
           name: "$p"
+        },
+        // intermediate cache
+        {
+          type: "Identifier",
+          name: "$"
         }
       ],
       body: ctx.ast
@@ -379,28 +430,52 @@ const definitions = {
       return ctx.ast;
     }
 
-    if (properties || value) {
+    ctx.aggregation = properties
+      ? properties.properties.some(({ property }) =>
+          isAggregateFunction(property)
+        )
+      : isAggregateFunction(value);
+    if (ctx.aggregation) {
+      // `($ = $c.filter(), [{ $1: COUNT($.map(c => c.id)), $2: ... }])`
       return {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: ctx.ast,
-          property: {
-            type: "Identifier",
-            name: "map"
-          }
-        },
-        arguments: [
+        type: "SequenceExpression",
+        expressions: [
+          // cache filtered result to a variable
           {
-            type: "ArrowFunctionExpression",
-            params: ctx.document ? [ctx.document] : [],
-            body: transform(ctx, properties || value)
+            type: "AssignmentExpression",
+            left: {
+              type: "Identifier",
+              name: "$"
+            },
+            operator: "=",
+            right: ctx.ast
+          },
+          {
+            type: "ArrayExpression",
+            elements: [transform(ctx, properties || value)]
           }
         ]
       };
     }
 
-    return ctx.ast;
+    return {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: ctx.ast,
+        property: {
+          type: "Identifier",
+          name: "map"
+        }
+      },
+      arguments: [
+        {
+          type: "ArrowFunctionExpression",
+          params: ctx.document ? [ctx.document] : [],
+          body: transform(ctx, properties || value)
+        }
+      ]
+    };
   },
 
   sort_specification(ctx, { expressions }) {

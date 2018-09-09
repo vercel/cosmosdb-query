@@ -10,21 +10,14 @@ const transform = require("./transformer");
 class Query {
   _query: string;
 
-  _ast: ?Object;
-
   _code: ?string;
+
+  ast: Object;
 
   constructor(query: string) {
     this._query = query;
-    this._ast = null;
     this._code = null;
-  }
-
-  get ast() {
-    if (!this._ast) {
-      this._ast = parse(this._query.trim());
-    }
-    return this._ast;
+    this.ast = parse(this._query.trim());
   }
 
   get code() {

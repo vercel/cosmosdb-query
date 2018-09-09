@@ -24,7 +24,6 @@ if (!q.containsPartitionKeys(['/key'])) {
 
 ## TODO
 
-- Aggregate functions
 - BETWEEN keyword
 - JOIN keyword
 - IN keyword

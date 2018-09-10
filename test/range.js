@@ -18,10 +18,7 @@ exports.root = testQuery(
   ],
   {
     query: "SELECT * FROM c WHERE c.ts < @a AND c.ts > @b",
-    parameters: [
-      { name: "@a", value: "3" },
-      { name: "@b", value: "1" }
-    ]
+    parameters: [{ name: "@a", value: "3" }, { name: "@b", value: "1" }]
   },
   [
     {

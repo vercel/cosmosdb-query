@@ -9,3 +9,12 @@ exports.root = testQuery(
   },
   [{ id: "sample database" }]
 );
+
+exports.compareGreaterAndLess = testQuery(
+  [{ id: "a", deletedAt: 10 }, { id: "b", deletedAt: 20 }],
+  {
+    query: "select * from c WHERE c.deletedAt < @a AND c.deletedAt > @b",
+    parameters: [{ name: "@a", value: 15 }, { name: "@b", value: 5 }]
+  },
+  [{ id: "a", deletedAt: 10 }]
+);

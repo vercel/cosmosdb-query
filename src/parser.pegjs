@@ -456,7 +456,7 @@ scalar_binary_equality_expression
 
 scalar_binary_relational_expression
   = head:(scalar_binary_bitwise_or_expression)
-    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_binary_or_expression)*
+    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_binary_bitwise_or_expression)*
     { return buildBinaryExpression(head, tail) }
 
 scalar_binary_bitwise_or_expression

@@ -20,7 +20,7 @@ function isAggregateFunction({ type, name, udf }) {
   return (
     type === "scalar_function_expression" &&
     // $FlowFixMe
-    Object.protorype.hasOwnProperty.call(
+    Object.prototype.hasOwnProperty.call(
       aggregateFunctions,
       name.name.toUpperCase()
     ) &&

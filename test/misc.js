@@ -35,3 +35,43 @@ exports.parameterizedTop = testQuery(
   },
   [{ id: "a" }]
 );
+
+exports.conditionStrictTrue1 = testQuery(
+  [{ id: "hi" }],
+  {
+    query: "select * from c where true"
+  },
+  [{ id: "hi" }]
+);
+
+exports.conditionStrictTrue2 = testQuery(
+  [{ id: "hi" }],
+  {
+    query: "select * from c where 1 OR true"
+  },
+  [{ id: "hi" }]
+);
+
+exports.conditionNotStrictTrue1 = testQuery(
+  [{ id: "hi" }],
+  {
+    query: "select * from c where 1"
+  },
+  []
+);
+
+exports.conditionNotStrictTrue2 = testQuery(
+  [{ id: "hi" }],
+  {
+    query: "select * from c where 1 and true"
+  },
+  []
+);
+
+exports.conditionNotStrictTrue3 = testQuery(
+  [{ id: "hi" }],
+  {
+    query: "select * from c where 1 OR 'ok'"
+  },
+  []
+);

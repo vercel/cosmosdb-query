@@ -2,6 +2,10 @@
 const { default: traverse } = require("@babel/traverse");
 const aggregateFunctions = require("./aggregate-functions");
 
+const jsEqualityOperators = new Set(["===", "!==", "==", "!="]);
+const jsRelationalOperators = new Set([">", "<", ">=", "<="]);
+const jsAndOrOperators = new Set(["&&", "||"]);
+
 function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   // eslint-disable-next-line no-use-before-define
   const def = definitions[node.type];
@@ -26,6 +30,28 @@ function isAggregateFunction({ type, name, udf }) {
     ) &&
     !udf
   );
+}
+
+function strictTrue(node) {
+  if (
+    node.type === "BinaryExpression" &&
+    (jsAndOrOperators.has(node.operator) ||
+      jsEqualityOperators.has(node.operator) ||
+      jsRelationalOperators.has(node.operator))
+  )
+    return node;
+  if (node.type === "UnaryExpression" && node.operator === "!") return node;
+  if (node.type === "BooleanLiteral" && node.value === true) return node;
+
+  return {
+    type: "BinaryExpression",
+    left: node,
+    operator: "===",
+    right: {
+      type: "BooleanLiteral",
+      value: true
+    }
+  };
 }
 
 const definitions = {
@@ -71,7 +97,7 @@ const definitions = {
         {
           type: "ArrowFunctionExpression",
           params: [ctx.document],
-          body: transform(ctx, condition)
+          body: strictTrue(transform(ctx, condition))
         }
       ]
     };
@@ -231,20 +257,10 @@ const definitions = {
   },
 
   scalar_binary_expression(ctx, { left, operator, right }) {
-    const op =
-      {
-        "=": "===",
-        "!=": "!==",
-        "<>": "!==",
-        "||": "+",
-        AND: "&&",
-        OR: "||"
-      }[operator] || operator;
-
     const l = transform(ctx, left);
     const r = transform(ctx, right);
 
-    if (op === "??") {
+    if (operator === "??") {
       // `typeof left !== "undefined" ? left : right`
       return {
         type: "ConditionalExpression",
@@ -267,11 +283,22 @@ const definitions = {
       };
     }
 
+    const op =
+      {
+        "=": "===",
+        "!=": "!==",
+        "<>": "!==",
+        "||": "+",
+        AND: "&&",
+        OR: "||"
+      }[operator] || operator;
+    const mustStrictTrue = operator === "AND" || operator === "OR";
+
     return {
       type: "BinaryExpression",
-      left: l,
+      left: mustStrictTrue ? strictTrue(l) : l,
       operator: op,
-      right: r
+      right: mustStrictTrue ? strictTrue(r) : r
     };
   },
 

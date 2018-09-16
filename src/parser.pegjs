@@ -1,24 +1,6 @@
 // Reference: https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query-reference
 
 {
-  const reserved = new Set([
-    "AND",
-    "AS",
-    "ASC",
-    "BY",
-    "DESC",
-    "FROM",
-    "IN",
-    "JOIN",
-    "NOT",
-    "OR",
-    "ORDER",
-    "SELECT",
-    "TOP",
-    "VALUE",
-    "WHERE"
-  ])
-
   function buildBinaryExpression(head, tail) {
     return tail.reduce((left, [, operator, , right]) => ({
       type: 'scalar_binary_expression',
@@ -302,9 +284,29 @@ true = "true" !identifier_start
 false = "false" !identifier_start
 udf = "udf" !identifier_start
 
+reserved
+  = select
+  / top
+  / from
+  / where
+  / order
+  / by
+  / as
+  / join
+  / in
+  / value
+  / asc
+  / desc
+  / and
+  / or
+  / not
+  / null
+  / true
+  / false
+  / udf
+
 identifier
-  = name:identifier_name
-    !{ return reserved.has(name.toUpperCase()) }
+  = !reserved name:identifier_name
     {
       return {
         type: 'identifier',

@@ -607,10 +607,7 @@ const definitions = {
           type: "NumericLiteral",
           value: 0
         },
-        {
-          type: "NumericLiteral",
-          value
-        }
+        transform(ctx, value)
       ]
     };
   },

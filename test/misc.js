@@ -18,3 +18,20 @@ exports.compareGreaterAndLess = testQuery(
   },
   [{ id: "a", deletedAt: 10 }]
 );
+
+exports.topMoreThan10 = testQuery(
+  [{ id: "b" }, { id: "c" }, { id: "a" }],
+  {
+    query: "select top 123 * from c order by c.id"
+  },
+  [{ id: "a" }, { id: "b" }, { id: "c" }]
+);
+
+exports.parameterizedTop = testQuery(
+  [{ id: "b" }, { id: "c" }, { id: "a" }],
+  {
+    query: "select top @top * from c order by c.id",
+    parameters: [{ name: "@top", value: 1 }]
+  },
+  [{ id: "a" }]
+);

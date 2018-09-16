@@ -303,7 +303,7 @@ false = "false" !identifier_start
 udf = "udf" !identifier_start
 
 identifier
-  = name:(head:identifier_start tail:[a-zA-Z0-9_]* { return head + tail.join('') })
+  = name:identifier_name
     !{ return reserved.has(name.toUpperCase()) }
     {
       return {
@@ -315,8 +315,12 @@ identifier
 identifier_start
   = [a-zA-Z_]
 
+identifier_name
+  = head:identifier_start tail:[a-zA-Z0-9_]*
+    { return head + tail.join('') }
+
 parameter_name
-  = "@" identifier
+  = "@" identifier_name
     {
       return {
         type: 'parameter_name',
@@ -325,13 +329,7 @@ parameter_name
     }
 
 array_index
-  = [0-9]+
-    {
-      return {
-        type: 'number_constant',
-        value: Number(text())
-      }
-    }
+  = unsigned_integer
 
 unary_operator
   = "+"
@@ -522,10 +520,19 @@ collection_member_expression
     }
 
 top_specification
-  = value:[0-9]+
+  = value:(unsigned_integer / parameter_name)
     {
       return {
         type: 'top_specification',
-        value: Number(value)
+        value
+      }
+    }
+
+unsigned_integer
+  = [0-9]+
+    {
+      return {
+        type: 'number_constant',
+        value: Number(text())
       }
     }

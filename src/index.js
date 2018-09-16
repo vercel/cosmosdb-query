@@ -35,8 +35,7 @@ class Query {
   }
 
   containsPartitionKeys(paths: string[]) {
-    if (!this.ast.where) return false;
-    return containsPartitionKeys(this.ast.where.condition, paths);
+    return containsPartitionKeys(this.ast, paths);
   }
 }
 

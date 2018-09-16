@@ -27,10 +27,11 @@ function toPartitionKey(node: Object) {
   return null;
 }
 
-module.exports = function containsPartitionKeys(
-  condition: Object,
-  paths: string[]
-) {
+module.exports = function containsPartitionKeys(ast: Object, paths: string[]) {
+  if (!paths.length) return true;
+  if (!ast.where) return false;
+
+  const { condition } = ast.where;
   const nodes = conditionKeyNodes(condition);
   const keys = nodes.map(n => new Set(n.map(toPartitionKey)));
   return keys.every(k => paths.every(p => k.has(p)));

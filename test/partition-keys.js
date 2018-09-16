@@ -44,3 +44,5 @@ exports.notContainsMultipleKeys = testPartitionKeys(
   ["/foo", "/bar"],
   false
 );
+
+exports.empty = testPartitionKeys("SELECT * FROM c", []);

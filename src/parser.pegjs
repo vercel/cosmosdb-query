@@ -127,12 +127,7 @@ scalar_expression
   = scalar_conditional_expression
 
 scalar_function_expression
-  = udf _ "." _ name:identifier _ "(" _
-      args:(
-        head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
-        { return [head, ...tail] }
-      )?
-    _ ")"
+  = udf _ "." _ name:identifier _ "(" _ args:scalar_expression_list?  _ ")"
     {
       return {
         type: 'scalar_function_expression',
@@ -141,12 +136,7 @@ scalar_function_expression
         udf: true
       }
     }
-  / name:identifier _ "(" _
-      args:(
-        head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
-        { return [head, ...tail] }
-      )?
-    _ ")"
+  / name:identifier _ "(" _ args:scalar_expression_list?  _ ")"
     {
       return {
         type: 'scalar_function_expression',
@@ -168,11 +158,11 @@ scalar_object_expression
     }
 
 scalar_array_expression
-  = "[" _ head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })* _ "]"
+  = "[" _ elements:scalar_expression_list _ "]"
     {
       return {
         type: "scalar_array_expression",
-        elements: [head, ...tail]
+        elements
       }
     }
 
@@ -457,12 +447,23 @@ scalar_binary_equality_expression
     { return buildBinaryExpression(head, tail) }
 
 scalar_binary_relational_expression
-  = head:(scalar_between_expression)
-    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_between_expression)*
+  = head:(scalar_in_expression)
+    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_in_expression)*
     { return buildBinaryExpression(head, tail) }
 
+scalar_in_expression
+  = value:scalar_between_expression _ in _ "(" _ list:scalar_expression_list _")"
+    {
+      return {
+        type: 'scalar_in_expression',
+        value,
+        list
+      }
+    }
+  / scalar_between_expression
+
 scalar_between_expression
-  = value:scalar_binary_bitwise_or_expression between _ begin:scalar_binary_bitwise_or_expression _ and _ end:scalar_binary_bitwise_or_expression
+  = value:scalar_binary_bitwise_or_expression _ between _ begin:scalar_binary_bitwise_or_expression _ and _ end:scalar_binary_bitwise_or_expression
     {
       return {
         type: 'scalar_between_expression',
@@ -552,3 +553,7 @@ unsigned_integer
         value: Number(text())
       }
     }
+
+scalar_expression_list
+  = head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
+    { return [head, ...tail] }

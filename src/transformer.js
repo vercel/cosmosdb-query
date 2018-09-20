@@ -372,6 +372,24 @@ const definitions = {
     };
   },
 
+  scalar_in_expression(ctx, { value, list }) {
+    return {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: {
+          type: "ArrayExpression",
+          elements: list.map(l => transform(ctx, l))
+        },
+        property: {
+          type: "Identifier",
+          name: "includes"
+        }
+      },
+      arguments: [transform(ctx, value)]
+    };
+  },
+
   scalar_member_expression(ctx, { object, property, computed }) {
     return {
       type: "MemberExpression",

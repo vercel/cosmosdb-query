@@ -223,6 +223,36 @@ exports.betweenKeyword2 = testQuery(
     .map(c => ({ $1: c.grade >= 0 && c.grade <= 10 }))
 );
 
+exports.inKeyword1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT *
+      FROM Families
+      WHERE Families.id IN ('AndersenFamily', 'WakefieldFamily')
+    `
+  },
+  collection.filter(Families =>
+    ["AndersenFamily", "WakefieldFamily"].includes(Families.id)
+  )
+);
+
+exports.inKeyword2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT *
+      FROM Families
+      WHERE Families.address.state IN ("NY", "WA", "CA", "PA", "OH", "OR", "MI", "WI", "MN", "FL")
+    `
+  },
+  collection.filter(Families =>
+    ["NY", "WA", "CA", "PA", "OH", "OR", "MI", "WI", "MN", "FL"].includes(
+      Families.address.state
+    )
+  )
+);
+
 exports.ternaryOperator1 = testQuery(
   collection,
   {

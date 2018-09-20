@@ -127,7 +127,7 @@ scalar_expression
   = scalar_conditional_expression
 
 scalar_function_expression
-  = udf _ "." _ name:identifier _ "(" _ args:scalar_expression_list?  _ ")"
+  = udf _ "." _ name:identifier _ "(" _ args:scalar_expression_list  _ ")"
     {
       return {
         type: 'scalar_function_expression',
@@ -136,7 +136,7 @@ scalar_function_expression
         udf: true
       }
     }
-  / name:identifier _ "(" _ args:scalar_expression_list?  _ ")"
+  / name:identifier _ "(" _ args:scalar_expression_list  _ ")"
     {
       return {
         type: 'scalar_function_expression',
@@ -555,5 +555,5 @@ unsigned_integer
     }
 
 scalar_expression_list
-  = head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
-    { return [head, ...tail] }
+  = head:scalar_expression? tail:(_ "," _ v:scalar_expression { return v })*
+    { return head ? [head, ...tail] : [] }

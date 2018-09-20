@@ -5,12 +5,36 @@ const testQuery = require("./utils/test-query");
 
 const test = (query, expected) => testQuery(null, { query }, expected);
 
+exports.ABS = test("SELECT ABS(-1), ABS(0), ABS(1)", [{ $1: 1, $2: 0, $3: 1 }]);
+
+exports.ACOS = test("SELECT ACOS(-1)", [{ $1: 3.1415926535897931 }]);
+
+exports.ASIN = test("SELECT ASIN(-1)", [{ $1: -1.5707963267948966 }]);
+
+exports.ATAN = test("SELECT ATAN(-45.01)", [{ $1: -1.5485826962062663 }]);
+
+exports.ATN2 = test("SELECT ATN2(35.175643, 129.44)", [
+  { $1: 1.3054517947300646 }
+]);
+
 exports.CEILING = test(
   `
     SELECT CEILING(123.45), CEILING(-123.45), CEILING(0.0)
   `,
   [{ $1: 124, $2: -123, $3: 0 }]
 );
+
+exports.COS = test("SELECT COS(14.78)", [{ $1: -0.59946542619465426 }]);
+
+exports.COT = test("SELECT COT(124.1332)", [{ $1: -0.040311998371148884 }]);
+
+exports.DEGREES = test("SELECT DEGREES(PI()/2)", [{ $1: 90 }]);
+
+exports.EXP1 = test("SELECT EXP(10)", [{ $1: 22026.465794806718 }]);
+
+exports.EXP2 = test("SELECT EXP(LOG(20)), LOG(EXP(20))", [
+  { $1: 19.999999999999996, $2: 20 }
+]);
 
 exports.FLOOR = test(
   `
@@ -19,11 +43,57 @@ exports.FLOOR = test(
   [{ $1: 123, $2: -124, $3: 0 }]
 );
 
+exports.LOG_1 = test("SELECT LOG(10)", [{ $1: 2.3025850929940459 }]);
+
+exports.LOG_2 = test("SELECT EXP(LOG(10))", [{ $1: 10.000000000000002 }]);
+
+exports.LOG10 = test("SELECT LOG10(100)", [{ $1: 2 }]);
+
+exports.PI = test("SELECT PI()", [{ $1: 3.1415926535897931 }]);
+
+exports.POWER = test("SELECT POWER(2, 3), POWER(2.5, 3)", [
+  { $1: 8, $2: 15.625 }
+]);
+
+exports.RADIANS = test(
+  "SELECT RADIANS(-45.01), RADIANS(-181.01), RADIANS(0), RADIANS(0.1472738), RADIANS(197.1099392)",
+  [
+    {
+      $1: -0.7855726963226477,
+      $2: -3.1592204790349356,
+      $3: 0,
+      $4: 0.0025704127119236249,
+      $5: 3.4402174274458375
+    }
+  ]
+);
+
 exports.ROUND = test(
   `
     SELECT ROUND(2.4), ROUND(2.6), ROUND(2.5), ROUND(-2.4), ROUND(-2.6)
   `,
   [{ $1: 2, $2: 3, $3: 3, $4: -2, $5: -3 }]
+);
+
+exports.SIGN = test("SELECT SIGN(-2), SIGN(-1), SIGN(0), SIGN(1), SIGN(2)", [
+  { $1: -1, $2: -1, $3: 0, $4: 1, $5: 1 }
+]);
+
+exports.SIN = test("SELECT SIN(45.175643)", [{ $1: 0.929607286611012 }]);
+
+exports.SQRT = test("SELECT SQRT(1), SQRT(2.0), SQRT(3)", [
+  { $1: 1, $2: 1.4142135623730952, $3: 1.7320508075688772 }
+]);
+
+exports.SQUARE = test("SELECT SQUARE(1), SQUARE(2.0), SQUARE(3)", [
+  { $1: 1, $2: 4, $3: 9 }
+]);
+
+exports.TAN = test("SELECT TAN(PI()/2)", [{ $1: 16331239353195370 }]);
+
+exports.TRUNC = test(
+  "SELECT TRUNC(2.4), TRUNC(2.6), TRUNC(2.5), TRUNC(-2.4), TRUNC(-2.6)",
+  [{ $1: 2, $2: 2, $3: 2, $4: -2, $5: -2 }]
 );
 
 exports.IS_ARRAY = test(
@@ -210,12 +280,20 @@ exports.CONTAINS = test(
   [{ $1: true, $2: false }]
 );
 
+exports.ENDSWITH = test('SELECT ENDSWITH("abc", "b"), ENDSWITH("abc", "bc")', [
+  { $1: false, $2: true }
+]);
+
 exports.INDEX_OF = test(
   `
     SELECT INDEX_OF("abc", "ab"), INDEX_OF("abc", "b"), INDEX_OF("abc", "d")
   `,
   [{ $1: 0, $2: 1, $3: -1 }]
 );
+
+exports.LEFT = test('SELECT LEFT("abc", 1), LEFT("abc", 2)', [
+  { $1: "a", $2: "ab" }
+]);
 
 exports.LENGTH = test(
   `
@@ -231,12 +309,30 @@ exports.LOWER = test(
   [{ $1: "abc" }]
 );
 
+exports.LTRIM = test('SELECT LTRIM("  abc"), LTRIM("abc"), LTRIM("abc   ")', [
+  { $1: "abc", $2: "abc", $3: "abc   " }
+]);
+
+exports.REPLACE = test('SELECT REPLACE("This is a Test", "Test", "desk")', [
+  { $1: "This is a desk" }
+]);
+
+exports.REPLACE = test('SELECT REPLICATE("a", 3)', [{ $1: "aaa" }]);
+
 exports.REVERSE = test(
   `
     SELECT REVERSE("Abc")
   `,
   [{ $1: "cbA" }]
 );
+
+exports.RIGHT = test('SELECT RIGHT("abc", 1), RIGHT("abc", 2)', [
+  { $1: "c", $2: "bc" }
+]);
+
+exports.RTRIM = test('SELECT RTRIM("  abc"), RTRIM("abc"), RTRIM("abc   ")', [
+  { $1: "  abc", $2: "abc", $3: "abc" }
+]);
 
 exports.STARTSWITH = test(
   `

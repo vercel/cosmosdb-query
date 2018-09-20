@@ -256,6 +256,26 @@ const definitions = {
     };
   },
 
+  scalar_between_expression(ctx, { value, begin, end }) {
+    const left = transform(ctx, value);
+    return {
+      type: "BinaryExpression",
+      left: {
+        type: "BinaryExpression",
+        left,
+        operator: ">=",
+        right: transform(ctx, begin)
+      },
+      operator: "&&",
+      right: {
+        type: "BinaryExpression",
+        left,
+        operator: "<=",
+        right: transform(ctx, end)
+      }
+    };
+  },
+
   scalar_binary_expression(ctx, { left, operator, right }) {
     const l = transform(ctx, left);
     const r = transform(ctx, right);

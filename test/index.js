@@ -196,6 +196,33 @@ exports.unaryOperator2 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => -c.grade === -5)
 );
 
+exports.betweenKeyword1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT *
+      FROM Families.children[0] c
+      WHERE c.grade BETWEEN 1 AND 5
+    `
+  },
+  collection
+    .map(Families => Families.children[0])
+    .filter(c => c.grade >= 1 && c.grade <= 5)
+);
+
+exports.betweenKeyword2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT (c.grade BETWEEN 0 AND 10)
+      FROM Families.children[0] c
+    `
+  },
+  collection
+    .map(Families => Families.children[0])
+    .map(c => ({ $1: c.grade >= 0 && c.grade <= 10 }))
+);
+
 exports.ternaryOperator1 = testQuery(
   collection,
   {

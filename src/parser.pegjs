@@ -279,6 +279,7 @@ desc = "DESC"i !identifier_start { return "DESC" }
 and = "AND"i !identifier_start { return "AND" }
 or = "OR"i !identifier_start { return "OR" }
 not = "NOT"i !identifier_start { return "NOT" }
+between = "BETWEEN"i !identifier_start
 null = "null" !identifier_start
 true = "true" !identifier_start
 false = "false" !identifier_start
@@ -300,6 +301,7 @@ reserved
   / and
   / or
   / not
+  / between
   / null
   / true
   / false
@@ -455,9 +457,21 @@ scalar_binary_equality_expression
     { return buildBinaryExpression(head, tail) }
 
 scalar_binary_relational_expression
-  = head:(scalar_binary_bitwise_or_expression)
-    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_binary_bitwise_or_expression)*
+  = head:(scalar_between_expression)
+    tail:(_ ("<=" / ">=" / "<" / ">") _ scalar_between_expression)*
     { return buildBinaryExpression(head, tail) }
+
+scalar_between_expression
+  = value:scalar_binary_bitwise_or_expression between _ begin:scalar_binary_bitwise_or_expression _ and _ end:scalar_binary_bitwise_or_expression
+    {
+      return {
+        type: 'scalar_between_expression',
+        value,
+        begin,
+        end
+      }
+    }
+  / scalar_binary_bitwise_or_expression
 
 scalar_binary_bitwise_or_expression
   = head:(scalar_binary_bitwise_xor_expression)

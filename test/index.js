@@ -50,13 +50,13 @@ const collection = [
 
 exports.all = testQuery(collection, { query: "SELECT * FROM c" }, collection);
 
-exports.filterById = testQuery(
+exports.query1 = testQuery(
   collection,
-  { query: 'SELECT * FROM Families f WHERE f.id = "WakefieldFamily"' },
-  collection.filter(({ id }) => id === "WakefieldFamily")
+  { query: 'SELECT * FROM Families f WHERE f.id = "AndersenFamily"' },
+  collection.filter(({ id }) => id === "AndersenFamily")
 );
 
-exports.reformatJSONObject = testQuery(
+exports.query2 = testQuery(
   collection,
   {
     query: `
@@ -65,9 +65,28 @@ exports.reformatJSONObject = testQuery(
       WHERE f.address.city = f.address.state
     `
   },
-  collection
-    .filter(({ address }) => address.city === address.state)
-    .map(({ id, address }) => ({ Family: { Name: id, City: address.city } }))
+  [
+    {
+      Family: {
+        Name: "WakefieldFamily",
+        City: "NY"
+      }
+    }
+  ]
+);
+
+exports.query3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT c.givenName
+      FROM Families f
+      JOIN c IN f.children
+      WHERE f.id = 'WakefieldFamily'
+      ORDER BY f.address.city ASC
+    `
+  },
+  [{ givenName: "Jesse" }, { givenName: "Lisa" }]
 );
 
 exports.select = testQuery(
@@ -288,7 +307,7 @@ exports.coalesceOperator = testQuery(
       FROM Families f
     `
   },
-  collection.map((f: Object) => ({ familyName: f.lastName || f.surname }))
+  [{ familyName: "Andersen" }, {}]
 );
 
 exports.quotedPropertyAccessor = testQuery(
@@ -487,19 +506,145 @@ exports.orderByClause2 = testQuery(
   ]
 );
 
-exports.fromIn = testQuery(
+exports.iteration1 = testQuery(
   collection,
   { query: "SELECT * FROM c IN Families.children" },
   collection.reduce((_, Families) => [..._, ...Families.children], [])
 );
 
-exports.fromInAndFilter = testQuery(
+exports.iteration2 = testQuery(
   collection,
   { query: "SELECT c.givenName FROM c IN Families.children WHERE c.grade = 8" },
-  collection
-    .reduce((_, Families) => [..._, ...Families.children], [])
-    .filter(c => c.grade === 8)
-    .map(({ givenName }: Object) => ({ givenName }))
+  [
+    {
+      givenName: "Lisa"
+    }
+  ]
+);
+
+exports.iteration3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT COUNT(child)
+      FROM child IN Families.children
+    `
+  },
+  [
+    {
+      $1: 3
+    }
+  ]
+);
+
+exports.join1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id
+      FROM Families f
+      JOIN f.NonExistent
+    `
+  },
+  []
+);
+
+exports.join2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id
+      FROM Families f
+      JOIN f.children
+    `
+  },
+  [
+    {
+      id: "AndersenFamily"
+    },
+    {
+      id: "WakefieldFamily"
+    }
+  ]
+);
+
+exports.join3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id
+      FROM Families f
+      JOIN c IN f.children
+    `
+  },
+  [
+    {
+      id: "AndersenFamily"
+    },
+    {
+      id: "WakefieldFamily"
+    },
+    {
+      id: "WakefieldFamily"
+    }
+  ]
+);
+
+exports.join4 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT
+        f.id AS familyName,
+        c.givenName AS childGivenName,
+        c.firstName AS childFirstName,
+        p.givenName AS petName
+      FROM Families f
+      JOIN c IN f.children
+      JOIN p IN c.pets
+    `
+  },
+  [
+    {
+      familyName: "AndersenFamily",
+      childFirstName: "Henriette Thaulow",
+      petName: "Fluffy"
+    },
+    {
+      familyName: "WakefieldFamily",
+      childGivenName: "Jesse",
+      petName: "Goofy"
+    },
+    {
+      familyName: "WakefieldFamily",
+      childGivenName: "Jesse",
+      petName: "Shadow"
+    }
+  ]
+);
+
+exports.join4 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT
+          f.id AS familyName,
+          c.givenName AS childGivenName,
+          c.firstName AS childFirstName,
+          p.givenName AS petName
+      FROM Families f
+      JOIN c IN f.children
+      JOIN p IN c.pets
+      WHERE p.givenName = "Shadow"
+    `
+  },
+  [
+    {
+      familyName: "WakefieldFamily",
+      childGivenName: "Jesse",
+      petName: "Shadow"
+    }
+  ]
 );
 
 exports.parameterized = testQuery(

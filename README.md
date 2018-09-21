@@ -22,6 +22,5 @@ if (!q.containsPartitionKeys(['/key'])) {
 
 ## TODO
 
-- JOIN keyword
 - Spatial functions
 - User-defined functions

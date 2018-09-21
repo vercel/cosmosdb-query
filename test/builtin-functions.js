@@ -361,8 +361,7 @@ exports.ToString1 = test(
       $4: "Infinity",
       $5: "false",
       $6: true,
-      $7: "false",
-      $8: undefined
+      $7: "false"
     }
   ]
 );
@@ -386,6 +385,58 @@ exports.ToString2 = testQuery(
     `
   },
   [{ $1: "4lb" }, { $1: "32kg" }, { $1: "400g" }, { $1: "8999mg" }]
+);
+
+exports.ToString3 = testQuery(
+  [
+    {
+      id: "08259",
+      description: "Cereals ready-to-eat, KELLOGG, KELLOGG'S CRISPIX",
+      nutrients: [
+        { id: "305", description: "Caffeine", units: "mg" },
+        {
+          id: "306",
+          description: "Cholesterol, HDL",
+          nutritionValue: 30,
+          units: "mg"
+        },
+        {
+          id: "307",
+          description: "Sodium, NA",
+          nutritionValue: 612,
+          units: "mg"
+        },
+        {
+          id: "308",
+          description: "Protein, ABP",
+          nutritionValue: 60,
+          units: "mg"
+        },
+        {
+          id: "309",
+          description: "Zinc, ZN",
+          nutritionValue: null,
+          units: "mg"
+        }
+      ]
+    }
+  ],
+  {
+    query: `
+      SELECT
+        n.id AS nutrientID,
+        REPLACE(ToString(n.nutritionValue), "6", "9") AS nutritionVal
+      FROM food
+      JOIN n IN food.nutrients
+    `
+  },
+  [
+    { nutrientID: "305" },
+    { nutrientID: "306", nutritionVal: "30" },
+    { nutrientID: "307", nutritionVal: "912" },
+    { nutrientID: "308", nutritionVal: "90" },
+    { nutrientID: "309", nutritionVal: "null" }
+  ]
 );
 
 exports.TRIM = test(

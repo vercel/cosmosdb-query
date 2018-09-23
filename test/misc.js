@@ -401,3 +401,32 @@ exports.functionCall = testQuery(
     }
   ]
 );
+
+exports.functionWrongNumberOfArgument = testQuery(
+  null,
+  {
+    query: "select ABS()"
+  },
+  new Error("The ABS function requires 1 argument(s)")
+);
+
+exports.arrayContains = testQuery(
+  null,
+  {
+    query: `
+      select
+        array_contains([], null),
+        array_contains([[1, 2]], [1], true),
+        array_contains([[{foo:1, bar:2}]], [{foo:1}], true),
+        array_contains([{foo: { a: 1, b: 2}, bar: 2}], {foo: { a: 1}}, true)
+    `
+  },
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: true,
+      $4: true
+    }
+  ]
+);

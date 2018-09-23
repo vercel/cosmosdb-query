@@ -317,7 +317,7 @@ exports.REPLACE = test('SELECT REPLACE("This is a Test", "Test", "desk")', [
   { $1: "This is a desk" }
 ]);
 
-exports.REPLACE = test('SELECT REPLICATE("a", 3)', [{ $1: "aaa" }]);
+exports.REPLICATE = test('SELECT REPLICATE("a", 3)', [{ $1: "aaa" }]);
 
 exports.REVERSE = test(
   `
@@ -460,13 +460,29 @@ exports.ARRAY_CONCAT = test(
   [{ $1: ["apples", "strawberries", "bananas"] }]
 );
 
-exports.ARRAY_CONTAINS = test(
+exports.ARRAY_CONTAINS1 = test(
   `
     SELECT
       ARRAY_CONTAINS(["apples", "strawberries", "bananas"], "apples"),
       ARRAY_CONTAINS(["apples", "strawberries", "bananas"], "mangoes")
   `,
   [{ $1: true, $2: false }]
+);
+
+exports.ARRAY_CONTAINS2 = test(
+  `
+    SELECT
+      ARRAY_CONTAINS([{"name": "apples", "fresh": true}, {"name": "strawberries", "fresh": true}], {"name": "apples"}, true),
+      ARRAY_CONTAINS([{"name": "apples", "fresh": true}, {"name": "strawberries", "fresh": true}], {"name": "apples"}),
+      ARRAY_CONTAINS([{"name": "apples", "fresh": true}, {"name": "strawberries", "fresh": true}], {"name": "mangoes"}, true)
+  `,
+  [
+    {
+      $1: true,
+      $2: false,
+      $3: false
+    }
+  ]
 );
 
 exports.ARRAY_LENGTH = test(

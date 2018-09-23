@@ -16,7 +16,7 @@ function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   return def(ctx, node);
 }
 
-function clone(node) {
+function cloneNode(node) {
   return JSON.parse(JSON.stringify(node));
 }
 
@@ -32,7 +32,7 @@ function isAggregateFunction({ type, name, udf }) {
   );
 }
 
-function strictTrue(node) {
+function strictTrueNode(node) {
   if (
     node.type === "BinaryExpression" &&
     (jsAndOrOperators.has(node.operator) ||
@@ -43,6 +43,21 @@ function strictTrue(node) {
   if (node.type === "UnaryExpression" && node.operator === "!") return node;
   if (node.type === "BooleanLiteral" && node.value === true) return node;
 
+  // check if calling equality or comparison helper function
+  if (node.type === "CallExpression") {
+    const { callee } = node;
+    if (
+      callee.type === "MemberExpression" &&
+      callee.object.type === "Identifier" &&
+      callee.object.name === "$h"
+    ) {
+      const { name } = callee.property;
+      if (name === "equal" || name === "notEqual" || name === "compare") {
+        return node;
+      }
+    }
+  }
+
   return {
     type: "BinaryExpression",
     left: node,
@@ -51,6 +66,41 @@ function strictTrue(node) {
       type: "BooleanLiteral",
       value: true
     }
+  };
+}
+
+function isNotUndefinedNode(argument) {
+  return {
+    type: "BinaryExpression",
+    left: {
+      type: "UnaryExpression",
+      operator: "typeof",
+      prefix: true,
+      argument
+    },
+    operator: "!==",
+    right: {
+      type: "StringLiteral",
+      value: "undefined"
+    }
+  };
+}
+
+function callHelperNode(name, ...args) {
+  return {
+    type: "CallExpression",
+    callee: {
+      type: "MemberExpression",
+      object: {
+        type: "Identifier",
+        name: "$h"
+      },
+      property: {
+        type: "Identifier",
+        name
+      }
+    },
+    arguments: args
   };
 }
 
@@ -97,7 +147,7 @@ const definitions = {
         {
           type: "ArrowFunctionExpression",
           params: [ctx.document],
-          body: strictTrue(transform(ctx, condition))
+          body: strictTrueNode(transform(ctx, condition))
         }
       ]
     };
@@ -334,20 +384,7 @@ const definitions = {
             params: [{ type: "Identifier", name: "$" }, document],
             body: {
               type: "ConditionalExpression",
-              test: {
-                type: "BinaryExpression",
-                left: {
-                  type: "UnaryExpression",
-                  operator: "typeof",
-                  prefix: true,
-                  argument: node
-                },
-                operator: "!==",
-                right: {
-                  type: "StringLiteral",
-                  value: "undefined"
-                }
-              },
+              test: isNotUndefinedNode(node),
               consequent: {
                 type: "ArrayExpression",
                 elements: [
@@ -487,27 +524,14 @@ const definitions = {
   },
 
   scalar_binary_expression(ctx, { left, operator, right }) {
-    const l = transform(ctx, left);
-    const r = transform(ctx, right);
+    let l = transform(ctx, left);
+    let r = transform(ctx, right);
 
     if (operator === "??") {
       // `typeof left !== "undefined" ? left : right`
       return {
         type: "ConditionalExpression",
-        test: {
-          type: "BinaryExpression",
-          left: {
-            type: "UnaryExpression",
-            operator: "typeof",
-            prefix: true,
-            argument: l
-          },
-          operator: "!==",
-          right: {
-            type: "StringLiteral",
-            value: "undefined"
-          }
-        },
+        test: isNotUndefinedNode(l),
         consequent: l,
         alternate: r
       };
@@ -522,13 +546,31 @@ const definitions = {
         AND: "&&",
         OR: "||"
       }[operator] || operator;
-    const mustStrictTrue = operator === "AND" || operator === "OR";
+
+    if (jsAndOrOperators.has(op)) {
+      l = strictTrueNode(l);
+      r = strictTrueNode(r);
+    } else if (op === "===") {
+      return callHelperNode("equal", l, r);
+    } else if (op === "!==") {
+      return callHelperNode("notEqual", l, r);
+    } else if (jsRelationalOperators.has(op)) {
+      return callHelperNode(
+        "compare",
+        {
+          type: "StringLiteral",
+          value: op
+        },
+        l,
+        r
+      );
+    }
 
     return {
       type: "BinaryExpression",
-      left: mustStrictTrue ? strictTrue(l) : l,
+      left: l,
       operator: op,
-      right: mustStrictTrue ? strictTrue(r) : r
+      right: r
     };
   },
 
@@ -630,12 +672,10 @@ const definitions = {
   },
 
   select_query(ctx, { top, select, from, where, orderBy }) {
-    const name = "$c";
-
     if (from) {
       ctx.ast = {
         type: "Identifier",
-        name
+        name: "$c"
       };
       ctx.ast = transform(ctx, from);
     } else {
@@ -679,7 +719,12 @@ const definitions = {
         // document array (collection)
         {
           type: "Identifier",
-          name
+          name: "$c"
+        },
+        // helper functions
+        {
+          type: "Identifier",
+          name: "$h"
         },
         // parameters
         {
@@ -797,7 +842,7 @@ const definitions = {
 
   sort_expression(ctx, { expression, order }) {
     const left = transform(ctx, expression);
-    const right = clone(left);
+    const right = cloneNode(left);
 
     [["$1", left], ["$2", right]].forEach(([name, node]) => {
       traverse(

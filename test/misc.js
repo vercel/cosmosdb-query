@@ -75,3 +75,110 @@ exports.conditionNotStrictTrue3 = testQuery(
   },
   []
 );
+
+exports.equal = testQuery(
+  null,
+  {
+    query: `
+      select
+        null = null,
+        {} = {},
+        { hi: undefined } = { hi: undefined },
+        { foo: { bar: {} } } = { foo: { bar: {} } },
+        { foo: 1, bar: 2 } = { bar: 2, foo: 1 },
+        { foo: 1, bar: 2 } = { foo: 1, bar: '2' },
+        { foo: 1, bar: 2 } = { foo: 1, bar: 2, baz: 3 },
+        [] = [],
+        [undefined] = [undefined],
+        [[1]] = [[1]],
+        [1, 2] = [1, 2],
+        [1, 2] = [1, '2'],
+        [1, 2] = [1, 2, 3],
+        [{foo: [{bar: true}]}] = [{foo:[{bar: true}]}],
+        [{foo: [{bar: true}]}] = [{foo:[{bar: false}]}]
+    `
+  },
+  [
+    {
+      $1: true,
+      $2: true,
+      $3: true,
+      $4: true,
+      $5: true,
+      $6: false,
+      $7: false,
+      $8: true,
+      $9: true,
+      $10: true,
+      $11: true,
+      $12: false,
+      $13: false,
+      $14: true,
+      $15: false
+    }
+  ]
+);
+
+exports.equalUndefined = testQuery(
+  [{ id: "hi" }],
+  {
+    query: `
+      select
+        c.nonExist = c.nonExist,
+        undefined = undefined,
+        undefined = 0,
+        undefined = null,
+        null = 0,
+        false = 0,
+        true = 1,
+        1 = "1",
+        {} = null,
+        {} = []
+      from c
+    `
+  },
+  [{}]
+);
+
+exports.notEqualUndefined = testQuery(
+  [{ id: "hi" }],
+  {
+    query: `
+      select
+        c.nonExist != c.nonExist,
+        undefined != undefined,
+        undefined != 0,
+        undefined != null,
+        null != 0,
+        false != 0,
+        true != 1,
+        1 != "1",
+        {} != null,
+        {} != []
+      from c
+    `
+  },
+  [{}]
+);
+
+[">", "<", ">=", "<="].forEach(op => {
+  exports[`compareUndefined ${op}`] = testQuery(
+    [{ id: "hi" }],
+    {
+      query: `
+        select
+          c.nonExist ${op} c.nonExist,
+          undefined ${op} undefined,
+          undefined ${op} null,
+          1 ${op} false,
+          0 ${op} '1',
+          null ${op} 0,
+          1 ${op} "1",
+          {} ${op} {},
+          [] ${op} []
+        from c
+      `
+    },
+    [{}]
+  );
+});

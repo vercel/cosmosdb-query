@@ -1,6 +1,7 @@
 // @flow
 const aggregateFunctions = require("./aggregate-functions");
 const builtinFunctions = require("./builtin-functions");
+const helpers = require("./helpers");
 
 function removeUndefined(obj) {
   if (Array.isArray(obj)) {
@@ -44,6 +45,7 @@ module.exports = (
     aggregateFunctions,
     builtinFunctions,
     collection,
+    helpers,
     params
   );
   return result.map(removeUndefined);

@@ -31,6 +31,10 @@ class Query {
 
   exec(coll: {}[], parameters?: { name: string, value: any }[]) {
     const { code } = this;
+    if (!code) {
+      throw new Error("Missing code");
+    }
+
     return execute(coll, { code, parameters });
   }
 

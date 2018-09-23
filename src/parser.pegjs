@@ -147,13 +147,13 @@ scalar_function_expression
 
 scalar_object_expression
   = "{" _
-    head:scalar_object_element_property
+    head:scalar_object_element_property?
     tail:(_ "," _ v:scalar_object_element_property { return v })*
     _ "}"
     {
       return {
         type: "scalar_object_expression",
-        properties: [head, ...tail]
+        properties: head ? [head, ...tail] : []
       }
     }
 

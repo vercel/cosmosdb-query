@@ -296,3 +296,50 @@ exports.logicalNotOperatorUndefined = testQuery(
   },
   [{}]
 );
+
+exports.ternaryOperator = testQuery(
+  null,
+  {
+    query: `
+      select
+        true ? true : false,
+        null ? true : false,
+        1 ? true : false,
+        'str' ? true : false,
+        {} ? true : false,
+        [] ? true : false
+    `
+  },
+  [
+    {
+      $1: true,
+      $2: false,
+      $3: false,
+      $4: false,
+      $5: false,
+      $6: false
+    }
+  ]
+);
+
+exports.concatenateOperator = testQuery(
+  null,
+  {
+    query: `
+      select
+        "foo" || "bar",
+        "foo" || 0,
+        0 || "bar",
+        undefined || "bar",
+        null || "bar",
+        true || "bar",
+        {} || "bar",
+        [] || "bar"
+    `
+  },
+  [
+    {
+      $1: "foobar"
+    }
+  ]
+);

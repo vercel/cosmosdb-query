@@ -86,3 +86,6 @@ exports.or = (a: any, b: any) => {
 };
 
 exports.not = (v: any) => (typeof v === "boolean" ? !v : undefined);
+
+exports.concat = (a: any, b: any) =>
+  typeof a === "string" && typeof b === "string" ? a + b : undefined;

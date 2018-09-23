@@ -2,10 +2,6 @@
 const { default: traverse } = require("@babel/traverse");
 const aggregateFunctions = require("./aggregate-functions");
 
-const jsEqualityOperators = new Set(["===", "!==", "==", "!="]);
-const jsRelationalOperators = new Set([">", "<", ">=", "<="]);
-const jsAndOrOperators = new Set(["&&", "||"]);
-
 function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   // eslint-disable-next-line no-use-before-define
   const def = definitions[node.type];
@@ -33,38 +29,6 @@ function isAggregateFunction({ type, name, udf }) {
 }
 
 function strictTrueNode(node) {
-  if (
-    node.type === "BinaryExpression" &&
-    (jsAndOrOperators.has(node.operator) ||
-      jsEqualityOperators.has(node.operator) ||
-      jsRelationalOperators.has(node.operator))
-  )
-    return node;
-  if (node.type === "UnaryExpression" && node.operator === "!") return node;
-  if (node.type === "BooleanLiteral" && node.value === true) return node;
-
-  // check if calling equality or comparison helper function
-  if (node.type === "CallExpression") {
-    const { callee } = node;
-    if (
-      callee.type === "MemberExpression" &&
-      callee.object.type === "Identifier" &&
-      callee.object.name === "$h"
-    ) {
-      const { name } = callee.property;
-      if (
-        name === "equal" ||
-        name === "notEqual" ||
-        name === "compare" ||
-        name === "and" ||
-        name === "or" ||
-        name === "not"
-      ) {
-        return node;
-      }
-    }
-  }
-
   return {
     type: "BinaryExpression",
     left: node,
@@ -544,44 +508,42 @@ const definitions = {
       };
     }
 
-    const op =
-      {
-        "=": "===",
-        "!=": "!==",
-        "<>": "!==",
-        "||": "+",
-        AND: "&&",
-        OR: "||"
-      }[operator] || operator;
-
-    if (op === "&&") {
+    if (operator === "AND") {
       return callHelperNode("and", l, r);
     }
-    if (op === "||") {
+    if (operator === "OR") {
       return callHelperNode("or", l, r);
     }
-    if (op === "===") {
+    if (operator === "=") {
       return callHelperNode("equal", l, r);
     }
-    if (op === "!==") {
+    if (operator === "!=" || operator === "<>") {
       return callHelperNode("notEqual", l, r);
     }
-    if (jsRelationalOperators.has(op)) {
+    if (
+      operator === ">" ||
+      operator === "<" ||
+      operator === ">=" ||
+      operator === "<="
+    ) {
       return callHelperNode(
         "compare",
         {
           type: "StringLiteral",
-          value: op
+          value: operator
         },
         l,
         r
       );
     }
+    if (operator === "||") {
+      return callHelperNode("concat", l, r);
+    }
 
     return {
       type: "BinaryExpression",
       left: l,
-      operator: op,
+      operator,
       right: r
     };
   },
@@ -589,7 +551,7 @@ const definitions = {
   scalar_conditional_expression(ctx, { test, consequent, alternate }) {
     return {
       type: "ConditionalExpression",
-      test: transform(ctx, test),
+      test: strictTrueNode(transform(ctx, test)),
       consequent: transform(ctx, consequent),
       alternate: transform(ctx, alternate)
     };

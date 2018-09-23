@@ -32,6 +32,29 @@ const deepEqual = (a: any, b: any) => {
   return a === b;
 };
 
+exports.stripUndefined = (obj: any) => {
+  if (Array.isArray(obj)) {
+    // remove `undefined` from array unlike JSON
+    return obj.reduce(
+      (o, v) =>
+        typeof v !== "undefined" ? [...o, exports.stripUndefined(v)] : o,
+      []
+    );
+  }
+
+  if (obj && typeof obj === "object") {
+    return Object.entries(obj).reduce((o, [k, v]) => {
+      if (typeof v !== "undefined") {
+        // eslint-disable-next-line no-param-reassign
+        o[k] = exports.stripUndefined(v);
+      }
+      return o;
+    }, {});
+  }
+
+  return obj;
+};
+
 exports.equal = (a: any, b: any) => {
   if (!equalTypes(a, b)) {
     return undefined;

@@ -3,28 +3,6 @@ const aggregateFunctions = require("./aggregate-functions");
 const builtinFunctions = require("./builtin-functions");
 const helpers = require("./helpers");
 
-function removeUndefined(obj) {
-  if (Array.isArray(obj)) {
-    // remove `undefined` from array unlike JSON
-    return obj.reduce(
-      (o, v) => (typeof v !== "undefined" ? [...o, removeUndefined(v)] : o),
-      []
-    );
-  }
-
-  if (obj && typeof obj === "object") {
-    return Object.entries(obj).reduce((o, [k, v]) => {
-      if (typeof v !== "undefined") {
-        // eslint-disable-next-line no-param-reassign
-        o[k] = removeUndefined(v);
-      }
-      return o;
-    }, {});
-  }
-
-  return obj;
-}
-
 module.exports = (
   collection: any[],
   {
@@ -41,12 +19,11 @@ module.exports = (
   });
 
   // $FlowFixMe
-  const result = execute(
+  return execute(
     aggregateFunctions,
     builtinFunctions,
     collection,
     helpers,
     params
   );
-  return result.map(removeUndefined);
 };

@@ -717,7 +717,7 @@ const definitions = {
           name: "$_"
         }
       ],
-      body: ctx.ast
+      body: callHelperNode("stripUndefined", ctx.ast)
     };
   },
 

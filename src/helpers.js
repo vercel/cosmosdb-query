@@ -110,5 +110,44 @@ exports.or = (a: any, b: any) => {
 
 exports.not = (v: any) => (typeof v === "boolean" ? !v : undefined);
 
+exports.calculate = (operator: string, a: any, b: any) => {
+  if (typeof a !== "number" || typeof b !== "number") {
+    return undefined;
+  }
+
+  switch (operator) {
+    case "+":
+      return a + b;
+    case "-":
+      return a - b;
+    case "*":
+      return a * b;
+    case "/":
+      return a / b;
+    case "%":
+      return a % b;
+    case "|":
+      // eslint-disable-next-line no-bitwise
+      return a | b;
+    case "&":
+      // eslint-disable-next-line no-bitwise
+      return a & b;
+    case "^":
+      // eslint-disable-next-line no-bitwise
+      return a ^ b;
+    case "<<":
+      // eslint-disable-next-line no-bitwise
+      return a << b;
+    case ">>":
+      // eslint-disable-next-line no-bitwise
+      return a >> b;
+    case ">>>":
+      // eslint-disable-next-line no-bitwise
+      return a >>> b;
+    default:
+      throw new TypeError(`Unexpected operator: ${operator}`);
+  }
+};
+
 exports.concat = (a: any, b: any) =>
   typeof a === "string" && typeof b === "string" ? a + b : undefined;

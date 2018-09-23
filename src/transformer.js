@@ -540,12 +540,15 @@ const definitions = {
       return callHelperNode("concat", l, r);
     }
 
-    return {
-      type: "BinaryExpression",
-      left: l,
-      operator,
-      right: r
-    };
+    return callHelperNode(
+      "calculate",
+      {
+        type: "StringLiteral",
+        value: operator
+      },
+      l,
+      r
+    );
   },
 
   scalar_conditional_expression(ctx, { test, consequent, alternate }) {

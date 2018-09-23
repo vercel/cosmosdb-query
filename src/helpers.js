@@ -68,3 +68,21 @@ exports.compare = (operator: string, a: any, b: any) => {
       throw new TypeError(`Unexpected operator: ${operator}`);
   }
 };
+
+exports.and = (a: any, b: any) => {
+  if (typeof a !== "boolean" || typeof b !== "boolean") {
+    return a === false || b === false ? false : undefined;
+  }
+
+  return a && b;
+};
+
+exports.or = (a: any, b: any) => {
+  if (typeof a !== "boolean" || typeof b !== "boolean") {
+    return a === true || b === true ? true : undefined;
+  }
+
+  return a || b;
+};
+
+exports.not = (v: any) => (typeof v === "boolean" ? !v : undefined);

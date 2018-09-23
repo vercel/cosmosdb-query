@@ -182,3 +182,117 @@ exports.notEqualUndefined = testQuery(
     [{}]
   );
 });
+
+exports.logicalOrOperator = testQuery(
+  null,
+  {
+    query: `
+      select
+        true or undefined,
+        undefined or true,
+        null or true,
+        0 or true,
+        '' or true,
+        {} or true,
+        [] or true
+    `
+  },
+  [
+    {
+      $1: true,
+      $2: true,
+      $3: true,
+      $4: true,
+      $5: true,
+      $6: true,
+      $7: true
+    }
+  ]
+);
+
+exports.logicalOrOperatorUndefined = testQuery(
+  null,
+  {
+    query: `
+      select
+        false or undefined,
+        undefined or false,
+        0 or false,
+        '' or false,
+        {} or false,
+        [] or false,
+        undefined or undefined,
+        null or undefined,
+        0 or undefined,
+        '' or undefined,
+        {} or undefined,
+        [] or undefined
+    `
+  },
+  [{}]
+);
+
+exports.logicalAndOperator = testQuery(
+  null,
+  {
+    query: `
+      select
+        false and undefined,
+        undefined and false,
+        null and false,
+        0 and false,
+        '' and false,
+        {} and false,
+        [] and false
+    `
+  },
+  [
+    {
+      $1: false,
+      $2: false,
+      $3: false,
+      $4: false,
+      $5: false,
+      $6: false,
+      $7: false
+    }
+  ]
+);
+
+exports.logicalAndOperatorUndefined = testQuery(
+  null,
+  {
+    query: `
+      select
+        true and undefined,
+        undefined and true,
+        0 and true,
+        '' and true,
+        {} and true,
+        [] and true,
+        undefined and undefined,
+        null and undefined,
+        0 and undefined,
+        '' and undefined,
+        {} and undefined,
+        [] and undefined
+    `
+  },
+  [{}]
+);
+
+exports.logicalNotOperatorUndefined = testQuery(
+  null,
+  {
+    query: `
+      select
+        not undefined,
+        not null,
+        not 0,
+        not '',
+        not {},
+        not []
+    `
+  },
+  [{}]
+);

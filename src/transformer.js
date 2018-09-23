@@ -52,7 +52,14 @@ function strictTrueNode(node) {
       callee.object.name === "$h"
     ) {
       const { name } = callee.property;
-      if (name === "equal" || name === "notEqual" || name === "compare") {
+      if (
+        name === "equal" ||
+        name === "notEqual" ||
+        name === "compare" ||
+        name === "and" ||
+        name === "or" ||
+        name === "not"
+      ) {
         return node;
       }
     }
@@ -524,8 +531,8 @@ const definitions = {
   },
 
   scalar_binary_expression(ctx, { left, operator, right }) {
-    let l = transform(ctx, left);
-    let r = transform(ctx, right);
+    const l = transform(ctx, left);
+    const r = transform(ctx, right);
 
     if (operator === "??") {
       // `typeof left !== "undefined" ? left : right`
@@ -547,14 +554,19 @@ const definitions = {
         OR: "||"
       }[operator] || operator;
 
-    if (jsAndOrOperators.has(op)) {
-      l = strictTrueNode(l);
-      r = strictTrueNode(r);
-    } else if (op === "===") {
+    if (op === "&&") {
+      return callHelperNode("and", l, r);
+    }
+    if (op === "||") {
+      return callHelperNode("or", l, r);
+    }
+    if (op === "===") {
       return callHelperNode("equal", l, r);
-    } else if (op === "!==") {
+    }
+    if (op === "!==") {
       return callHelperNode("notEqual", l, r);
-    } else if (jsRelationalOperators.has(op)) {
+    }
+    if (jsRelationalOperators.has(op)) {
       return callHelperNode(
         "compare",
         {
@@ -663,7 +675,13 @@ const definitions = {
   },
 
   scalar_unary_expression(ctx, { operator, argument }) {
+    const node = transform(ctx, argument);
     const op = operator === "NOT" ? "!" : operator;
+
+    if (op === "!") {
+      return callHelperNode("not", node);
+    }
+
     return {
       type: "UnaryExpression",
       operator: op,

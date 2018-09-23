@@ -641,17 +641,19 @@ const definitions = {
 
   scalar_unary_expression(ctx, { operator, argument }) {
     const node = transform(ctx, argument);
-    const op = operator === "NOT" ? "!" : operator;
 
-    if (op === "!") {
+    if (operator === "NOT") {
       return callHelperNode("not", node);
     }
 
-    return {
-      type: "UnaryExpression",
-      operator: op,
-      argument: transform(ctx, argument)
-    };
+    return callHelperNode(
+      "calculateUnary",
+      {
+        type: "StringLiteral",
+        value: operator
+      },
+      node
+    );
   },
 
   select_query(ctx, { top, select, from, where, orderBy }) {

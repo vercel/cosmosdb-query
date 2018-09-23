@@ -367,3 +367,22 @@ exports.concatenateOperator = testQuery(
     [{}]
   );
 });
+
+["+", "-", "~"].forEach(op => {
+  exports[`arithmeticOperatorUndefined ${op}`] = testQuery(
+    null,
+    {
+      query: `
+        select
+          ${op}undefined,
+          ${op}null,
+          ${op}'0',
+          ${op}true,
+          ${op}false,
+          ${op}{},
+          ${op}[]
+      `
+    },
+    [{}]
+  );
+});

@@ -149,5 +149,23 @@ exports.calculate = (operator: string, a: any, b: any) => {
   }
 };
 
+exports.calculateUnary = (operator: string, v: any) => {
+  if (typeof v !== "number") {
+    return undefined;
+  }
+
+  switch (operator) {
+    case "+":
+      return +v;
+    case "-":
+      return -v;
+    case "~":
+      // eslint-disable-next-line no-bitwise
+      return ~v;
+    default:
+      throw new TypeError(`Unexpected operator: ${operator}`);
+  }
+};
+
 exports.concat = (a: any, b: any) =>
   typeof a === "string" && typeof b === "string" ? a + b : undefined;

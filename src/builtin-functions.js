@@ -125,7 +125,7 @@ exports.SUBSTRING = ifDefined((a: string, b: number, c?: number) =>
 
 exports.TAN = ifDefined((v: number) => Math.tan(v));
 
-exports.ToString = ifDefined((v?: number | string | boolean) => String(v));
+exports.TOSTRING = ifDefined((v?: number | string | boolean) => String(v));
 
 exports.TRIM = ifDefined((v: string) => v.trim());
 

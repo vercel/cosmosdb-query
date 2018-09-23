@@ -564,6 +564,9 @@ const definitions = {
     const aggregation =
       ctx.aggregation && isAggregateFunction({ type, name, udf });
 
+    const f = transform(ctx, name);
+    f.name = f.name.toUpperCase();
+
     return {
       type: "CallExpression",
       callee: {
@@ -573,7 +576,7 @@ const definitions = {
           // eslint-disable-next-line no-nested-ternary
           name: udf ? "udf" : aggregation ? "$a" : "$b"
         },
-        property: transform(ctx, name)
+        property: f
       },
       arguments: aggregation
         ? args.map(a => ({

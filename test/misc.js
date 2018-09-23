@@ -386,3 +386,18 @@ exports.concatenateOperator = testQuery(
     [{}]
   );
 });
+
+exports.functionCall = testQuery(
+  null,
+  {
+    query: "select ABS(-1), abs(-1), abs (-1), abs ( -1 )"
+  },
+  [
+    {
+      $1: 1,
+      $2: 1,
+      $3: 1,
+      $4: 1
+    }
+  ]
+);

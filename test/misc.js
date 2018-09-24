@@ -402,14 +402,6 @@ exports.functionCall = testQuery(
   ]
 );
 
-exports.functionWrongNumberOfArgument = testQuery(
-  null,
-  {
-    query: "select ABS()"
-  },
-  new Error("The ABS function requires 1 argument(s)")
-);
-
 exports.arrayContains = testQuery(
   null,
   {
@@ -477,5 +469,138 @@ exports.orderTypes = testQuery(
     1,
     2,
     10
+  ]
+);
+
+exports.aggregationWithUndefined = testQuery(
+  [10, 1, 0, 0.5, 2, undefined].map((v, i) => ({ id: i, v })),
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 5,
+      $2: 13.5,
+      $3: 2.7,
+      $4: 10
+    }
+  ]
+);
+
+exports.aggregationWithNull = testQuery(
+  [10, 1, 0, 0.5, 2, null].map((v, i) => ({ id: i, v })),
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 6,
+      $4: 10
+    }
+  ]
+);
+
+exports.aggregationWithBoolean = testQuery(
+  [10, 1, 0, 0.5, 2, true, false].map((v, i) => ({ id: i, v })),
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 7,
+      $4: 10
+    }
+  ]
+);
+
+exports.aggregationWithString = testQuery(
+  [10, 1, 0, 0.5, 2, "01", "1", "10", "2", "A", "B", "a", "b"].map((v, i) => ({
+    id: i,
+    v
+  })),
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 13,
+      $4: "b"
+    }
+  ]
+);
+
+exports.aggregationWithArrayAndObject = testQuery(
+  [10, 1, 0, 0.5, 2, [], {}].map((v, i) => ({
+    id: i,
+    v
+  })),
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 7
+    }
+  ]
+);
+
+exports.aggregationEmpty = testQuery(
+  [],
+  {
+    query: `
+      select
+        count(c.v),
+        sum(c.v),
+        avg(c.v),
+        max(c.v),
+        min(c.v)
+      from c
+    `
+  },
+  [
+    {
+      $1: 0,
+      $2: 0
+    }
   ]
 );

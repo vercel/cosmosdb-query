@@ -12,10 +12,6 @@ function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   return def(ctx, node);
 }
 
-function cloneNode(node) {
-  return JSON.parse(JSON.stringify(node));
-}
-
 function isAggregateFunction({ type, name, udf }) {
   return (
     type === "scalar_function_expression" &&
@@ -117,7 +113,7 @@ const definitions = {
       arguments: [
         {
           type: "ArrowFunctionExpression",
-          params: [ctx.document],
+          params: ctx.document ? [ctx.document] : [],
           body: strictTrueNode(transform(ctx, condition))
         }
       ]
@@ -129,129 +125,151 @@ const definitions = {
   },
 
   from_specification(ctx, { source, joins }) {
-    ctx.document = transform(ctx, source);
-    const exp = transform(ctx, source.expression);
+    return [source, ...(joins || [])].reduce(
+      (object, { expression, alias, iteration }) => {
+        const exp = transform(ctx, expression);
+        const node = alias ? transform(ctx, alias) : exp;
+        const nameNode = node.property || node;
 
-    let arg;
-    traverse(
-      { type: "Program", body: [exp] },
-      {
-        MemberExpression(path) {
-          const { object } = path.node;
-          if (object.type === "Identifier") {
-            arg = object;
-            path.stop();
+        if (!ctx.document) {
+          if (exp.type !== "MemberExpression") {
+            ctx.document = exp;
+          } else {
+            traverse(
+              { type: "Program", body: [exp] },
+              {
+                MemberExpression(path) {
+                  const { object: o } = path.node;
+                  if (o.type === "Identifier") {
+                    ctx.document = o;
+                    path.stop();
+                  }
+                }
+              }
+            );
           }
         }
-      }
-    );
 
-    let object;
-    if (source.iteration) {
-      // e.g, "FROM c IN Families.children"
-      // collection.reduce(($, Families) => [...$, ...Families.children], [])
-      object = {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: ctx.ast,
-          property: {
-            type: "Identifier",
-            name: "reduce"
-          }
-        },
-        arguments: [
-          {
-            type: "ArrowFunctionExpression",
-            params: [{ type: "Identifier", name: "$" }, arg],
-            body: {
-              type: "ArrayExpression",
-              elements: [
-                {
-                  type: "SpreadElement",
-                  argument: {
-                    type: "Identifier",
-                    name: "$"
-                  }
-                },
-                {
-                  type: "SpreadElement",
-                  argument: exp
-                }
-              ]
+        const { document } = ctx;
+
+        ctx.document = {
+          type: "ObjectPattern",
+          properties: [
+            ...(document.type === "ObjectPattern" ? document.properties : []),
+            {
+              type: "ObjectProperty",
+              computed: false,
+              shorthand: true,
+              key: nameNode,
+              value: nameNode
             }
-          },
-          {
-            type: "ArrayExpression",
-            elements: []
-          }
-        ]
-      };
-    } else if (exp.type === "MemberExpression") {
-      object = {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: ctx.ast,
-          property: {
-            type: "Identifier",
-            name: "map"
-          }
-        },
-        arguments: [
-          {
-            type: "ArrowFunctionExpression",
-            params: [arg],
-            body: exp
-          }
-        ]
-      };
-    } else {
-      object = ctx.ast;
-    }
+          ]
+        };
 
-    return (joins || []).reduce((obj, { expression, alias, iteration }) => {
-      const node = transform(ctx, alias || expression);
-      const nameNode = alias ? node : node.property;
-      const { document } = ctx;
-      ctx.document = {
-        type: "ObjectPattern",
-        properties: [
-          ...(document.type === "ObjectPattern"
-            ? document.properties
-            : [
-                {
-                  type: "ObjectProperty",
-                  computed: false,
-                  shorthand: true,
-                  key: document,
-                  value: document
+        if (iteration) {
+          // e.g,
+          //   FROM Families f
+          //   JOIN c IN f.children
+          //   JOIN p IN c.pets
+          //
+          // collection
+          //   .reduce(($, Families) => [...$, { f: Families }], [])
+          //   .reduce(($, { f }) => [...$, ...(f.children || []).map(c => ({ c, f }))], [])
+          //   .reduce(($, { f, c }) => [...$, ...(c.pets || []).map(p => ({ c, f, p }))], [])
+          return {
+            type: "CallExpression",
+            callee: {
+              type: "MemberExpression",
+              object,
+              property: {
+                type: "Identifier",
+                name: "reduce"
+              }
+            },
+            arguments: [
+              {
+                type: "ArrowFunctionExpression",
+                params: [{ type: "Identifier", name: "$" }, document],
+                body: {
+                  type: "ArrayExpression",
+                  elements: [
+                    {
+                      type: "SpreadElement",
+                      argument: {
+                        type: "Identifier",
+                        name: "$"
+                      }
+                    },
+                    {
+                      type: "SpreadElement",
+                      argument: {
+                        type: "CallExpression",
+                        callee: {
+                          type: "MemberExpression",
+                          object: {
+                            type: "LogicalExpression",
+                            left: exp,
+                            operator: "||",
+                            right: {
+                              type: "ArrayExpression",
+                              elements: []
+                            }
+                          },
+                          property: {
+                            type: "Identifier",
+                            name: "map"
+                          }
+                        },
+                        arguments: [
+                          {
+                            type: "ArrowFunctionExpression",
+                            params: [nameNode],
+                            body: {
+                              type: "ObjectExpression",
+                              properties: [
+                                ...(document.type === "ObjectPattern"
+                                  ? document.properties
+                                  : []),
+                                {
+                                  type: "ObjectProperty",
+                                  computed: false,
+                                  key: nameNode,
+                                  value: nameNode
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
                 }
-              ]),
-          {
-            type: "ObjectProperty",
-            computed: false,
-            shorthand: true,
-            key: nameNode,
-            value: nameNode
-          }
-        ]
-      };
+              },
+              {
+                type: "ArrayExpression",
+                elements: []
+              }
+            ]
+          };
+        }
 
-      if (iteration) {
         // e.g,
-        //   FROM Families f
-        //   JOIN c IN f.children
-        //   JOIN p IN c.pets
+        //   FROM Families.children[0] c
         //
         // collection
-        //   .reduce(($, f) => [...$, ...(f.children || []).map(c => ({ c, f }))], [])
-        //   .reduce(($, { f, c }) => [...$, ...(c.pets || []).map(p => ({ c, f, p }))], [])
+        //   .reduce(($, Families) => [...$, { c: Families.children[0] }], [])
+        //
+        //   FROM Families f
+        //   JOIN f.children
+        //
+        // collection
+        //   .reduce(($, Families) => [...$, { f: Families }], [])
+        //   .reduce(($, f) => (typeof f.children !== 'undefined' ? [...$, { f, children: f.children }] : $), [])
         return {
           type: "CallExpression",
           callee: {
             type: "MemberExpression",
-            object: obj,
+            object,
             property: {
               type: "Identifier",
               name: "reduce"
@@ -262,67 +280,38 @@ const definitions = {
               type: "ArrowFunctionExpression",
               params: [{ type: "Identifier", name: "$" }, document],
               body: {
-                type: "ArrayExpression",
-                elements: [
-                  {
-                    type: "SpreadElement",
-                    argument: {
-                      type: "Identifier",
-                      name: "$"
-                    }
-                  },
-                  {
-                    type: "SpreadElement",
-                    argument: {
-                      type: "CallExpression",
-                      callee: {
-                        type: "MemberExpression",
-                        object: {
-                          type: "LogicalExpression",
-                          left: transform(ctx, expression),
-                          operator: "||",
-                          right: {
-                            type: "ArrayExpression",
-                            elements: []
-                          }
-                        },
-                        property: {
-                          type: "Identifier",
-                          name: "map"
-                        }
-                      },
-                      arguments: [
+                type: "ConditionalExpression",
+                test: isNotUndefinedNode(exp),
+                consequent: {
+                  type: "ArrayExpression",
+                  elements: [
+                    {
+                      type: "SpreadElement",
+                      argument: {
+                        type: "Identifier",
+                        name: "$"
+                      }
+                    },
+                    {
+                      type: "ObjectExpression",
+                      properties: [
+                        ...(document.type === "ObjectPattern"
+                          ? document.properties
+                          : []),
                         {
-                          type: "ArrowFunctionExpression",
-                          params: [nameNode],
-                          body: {
-                            type: "ObjectExpression",
-                            properties: [
-                              ...(document.type === "ObjectPattern"
-                                ? document.properties
-                                : [
-                                    {
-                                      type: "ObjectProperty",
-                                      computed: false,
-                                      shorthand: true,
-                                      key: document,
-                                      value: document
-                                    }
-                                  ]),
-                              {
-                                type: "ObjectProperty",
-                                computed: false,
-                                shorthand: true,
-                                key: nameNode,
-                                value: nameNode
-                              }
-                            ]
-                          }
+                          type: "ObjectProperty",
+                          computed: false,
+                          key: nameNode,
+                          value: exp
                         }
                       ]
                     }
-                  }
-                ]
+                  ]
+                },
+                alternate: {
+                  type: "Identifier",
+                  name: "$"
+                }
               }
             },
             {
@@ -331,79 +320,9 @@ const definitions = {
             }
           ]
         };
-      }
-
-      // e.g,
-      //   FROM Families f
-      //   JOIN f.children
-      //
-      // collection
-      //   .reduce(($, f) => (typeof f.children !== 'undefined' ? [...$, { f, children: f.children }] : $), [])
-      return {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: obj,
-          property: {
-            type: "Identifier",
-            name: "reduce"
-          }
-        },
-        arguments: [
-          {
-            type: "ArrowFunctionExpression",
-            params: [{ type: "Identifier", name: "$" }, document],
-            body: {
-              type: "ConditionalExpression",
-              test: isNotUndefinedNode(node),
-              consequent: {
-                type: "ArrayExpression",
-                elements: [
-                  {
-                    type: "SpreadElement",
-                    argument: {
-                      type: "Identifier",
-                      name: "$"
-                    }
-                  },
-                  {
-                    type: "ObjectExpression",
-                    properties: [
-                      ...(document.type === "ObjectPattern"
-                        ? document.properties
-                        : [
-                            {
-                              type: "ObjectProperty",
-                              computed: false,
-                              shorthand: true,
-                              key: document,
-                              value: document
-                            }
-                          ]),
-                      {
-                        type: "ObjectProperty",
-                        computed: false,
-                        shorthand: true,
-                        key: nameNode,
-                        value: node
-                      }
-                    ]
-                  }
-                ]
-              },
-              alternate: {
-                type: "Identifier",
-                name: "$"
-              }
-            }
-          },
-          {
-            type: "ArrayExpression",
-            elements: []
-          }
-        ]
-      };
-    }, object);
+      },
+      ctx.ast
+    );
   },
 
   identifier(ctx, { name }) {
@@ -731,7 +650,28 @@ const definitions = {
 
   select_specification(ctx, { "*": all, properties, value }) {
     if (all) {
-      return ctx.ast;
+      if (ctx.document.properties > 1) {
+        throw new Error("'SELECT *' is only valid with a single input set.");
+      }
+
+      return {
+        type: "CallExpression",
+        callee: {
+          type: "MemberExpression",
+          object: ctx.ast,
+          property: {
+            type: "Identifier",
+            name: "map"
+          }
+        },
+        arguments: [
+          {
+            type: "ArrowFunctionExpression",
+            params: [ctx.document],
+            body: ctx.document.properties[0]
+          }
+        ]
+      };
     }
 
     ctx.aggregation = properties
@@ -783,121 +723,51 @@ const definitions = {
   },
 
   sort_specification(ctx, { expressions }) {
-    return {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: {
-          type: "CallExpression",
-          callee: {
-            type: "MemberExpression",
-            object: ctx.ast,
-            property: {
-              type: "Identifier",
-              name: "slice"
-            }
-          },
-          arguments: []
-        },
-        property: {
-          type: "Identifier",
-          name: "sort"
-        }
-      },
-      arguments: [
-        {
-          type: "ArrowFunctionExpression",
-          params: [
-            { type: "Identifier", name: "$1" },
-            { type: "Identifier", name: "$2" }
-          ],
-          body: expressions.reduce((left, right) => {
-            if (left) {
-              return {
-                type: "LogicalExpression",
-                left,
-                operator: "||",
-                right: transform(ctx, right)
-              };
-            }
-
-            return transform(ctx, right);
-          }, null)
-        }
-      ]
-    };
+    return callHelperNode(
+      "sort",
+      ctx.ast,
+      ...expressions.map(e => transform(ctx, e))
+    );
   },
 
   sort_expression(ctx, { expression, order }) {
-    const left = transform(ctx, expression);
-    const right = cloneNode(left);
+    const node = transform(ctx, expression);
 
-    [["$1", left], ["$2", right]].forEach(([name, node]) => {
+    const elements = [];
+    if (node.type === "MemberExpression") {
       traverse(
         { type: "Program", body: [node] },
         {
           MemberExpression(path) {
-            const { object } = path.node;
-            if (object.type === "Identifier") {
-              // eslint-disable-next-line no-param-reassign
-              path.node.object =
-                ctx.document.type === "ObjectPattern"
-                  ? {
-                      type: "MemberExpression",
-                      object: {
-                        type: "Identifier",
-                        name
-                      },
-                      property: object
-                    }
-                  : {
-                      type: "Identifier",
-                      name
-                    };
-              path.stop();
+            elements.unshift({
+              type: "StringLiteral",
+              value: path.node.property.name
+            });
+
+            if (path.node.object.type === "Identifier") {
+              elements.unshift({
+                type: "StringLiteral",
+                value: path.node.object.name
+              });
             }
           }
         }
       );
-    });
+    }
 
-    const ast = {
-      type: "ConditionalExpression",
-      test: {
-        type: "MemberExpression",
-        object: left,
-        property: {
-          type: "Identifier",
-          name: "localeCompare"
-        }
-      },
-      consequent: {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: left,
-          property: {
-            type: "Identifier",
-            name: "localeCompare"
-          }
+    return {
+      type: "ArrayExpression",
+      elements: [
+        {
+          type: "ArrayExpression",
+          elements
         },
-        arguments: [right]
-      },
-      alternate: {
-        type: "BinaryExpression",
-        left,
-        operator: "-",
-        right
-      }
-    };
-
-    return order === "DESC"
-      ? {
-          type: "UnaryExpression",
-          operator: "-",
-          argument: ast
+        {
+          type: "BooleanLiteral",
+          value: order === "DESC"
         }
-      : ast;
+      ]
+    };
   },
 
   string_constant(ctx, { value }) {

@@ -430,3 +430,52 @@ exports.arrayContains = testQuery(
     }
   ]
 );
+
+exports.orderTypes = testQuery(
+  [
+    10,
+    1,
+    0,
+    "2",
+    0.5,
+    "b",
+    "1",
+    2,
+    "10",
+    "01",
+    false,
+    "A",
+    [],
+    "B",
+    "a",
+    [2],
+    [1],
+    {},
+    { hi: 2 },
+    true,
+    { hi: 1 },
+    null,
+    undefined
+  ].map((v, i) => ({ id: i, v })),
+  {
+    query: "select value c.v from c order by c.v"
+  },
+  [
+    false,
+    true,
+    null,
+    "01",
+    "1",
+    "10",
+    "2",
+    "A",
+    "B",
+    "a",
+    "b",
+    0,
+    0.5,
+    1,
+    2,
+    10
+  ]
+);

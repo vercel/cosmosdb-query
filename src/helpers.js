@@ -32,6 +32,11 @@ const deepEqual = (a: any, b: any) => {
   return a === b;
 };
 
+const TYPE_ORDERS = new Set(["boolean", "null", "string", "number"]);
+
+const prop = (obj: Object, keys: string[]) =>
+  keys.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
+
 exports.stripUndefined = (obj: any) => {
   if (Array.isArray(obj)) {
     // remove `undefined` from array unlike JSON
@@ -169,3 +174,77 @@ exports.calculateUnary = (operator: string, v: any) => {
 
 exports.concat = (a: any, b: any) =>
   typeof a === "string" && typeof b === "string" ? a + b : undefined;
+
+exports.sort = (collection: Object[], ...orders: [string[], boolean][]) => {
+  if (
+    !orders.length ||
+    orders.some(([o]) => !Array.isArray(o) || o.length < 2)
+  ) {
+    throw new Error(
+      "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
+    );
+  }
+
+  const sorted = collection.slice().sort((a, b) => {
+    for (let i = 0, l = orders.length; i < l; i += 1) {
+      const [keys, desc] = orders[i];
+      const aValue = prop(a, keys);
+      const bValue = prop(b, keys);
+      const aType = typeOf(aValue);
+      const bType = typeOf(bValue);
+
+      let r = 0;
+      if (aType === bType) {
+        if (TYPE_ORDERS.has(aType)) {
+          if (aType === "string") {
+            // $FlowFixMe
+            if (aValue < bValue) {
+              r = -1;
+              // $FlowFixMe
+            } else if (aValue > bValue) {
+              r = 1;
+            }
+          } else {
+            // $FlowFixMe
+            r = aValue - bValue;
+          }
+        }
+      } else {
+        [...TYPE_ORDERS].some(t => {
+          if (aType === t) {
+            r = -1;
+            return true;
+          }
+          if (bType === t) {
+            r = 1;
+            return true;
+          }
+          return false;
+        });
+      }
+      if (r !== 0) return desc ? -r : r;
+    }
+    return 0;
+  });
+
+  // find the index of the first invalid item (undefined, object or array)
+  let idx;
+  for (let i = sorted.length - 1; i >= 0; i -= 1) {
+    const doc = sorted[i];
+
+    for (let j = 0, l = orders.length; j < l; j += 1) {
+      const [keys] = orders[j];
+      const value = prop(doc, keys);
+      const t = typeOf(value);
+      if (TYPE_ORDERS.has(t)) {
+        idx = i !== sorted.length - 1 ? i + 1 : -1;
+        break;
+      }
+    }
+
+    if (idx != null) break;
+  }
+
+  // $FlowFixMe
+  return idx != null && idx >= 0 ? sorted.slice(0, idx) : sorted;
+};

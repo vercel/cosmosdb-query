@@ -1,6 +1,6 @@
 {
   "name": "@zeit/cosmosdb-query",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "license": "UNLICENSED",
   "main": "lib/index.js",
   "files": [

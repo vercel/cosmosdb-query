@@ -633,6 +633,11 @@ const definitions = {
           type: "Identifier",
           name: "$h"
         },
+        // udf
+        {
+          type: "Identifier",
+          name: "udf"
+        },
         // parameters
         {
           type: "Identifier",

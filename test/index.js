@@ -647,6 +647,81 @@ exports.join4 = testQuery(
   ]
 );
 
+const REGEX_MATCH = function REGEX_MATCH(input: string, pattern: string) {
+  return input.match(pattern) !== null;
+};
+
+exports.udf1 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT udf.REGEX_MATCH(Families.address.city, ".*eattle")
+      FROM Families
+    `,
+    udf: { REGEX_MATCH }
+  },
+  [
+    {
+      $1: true
+    },
+    {
+      $1: false
+    }
+  ]
+);
+
+exports.udf2 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT Families.id, Families.address.city
+      FROM Families
+      WHERE udf.REGEX_MATCH(Families.address.city, ".*eattle")
+    `,
+    udf: { REGEX_MATCH }
+  },
+  [
+    {
+      id: "AndersenFamily",
+      city: "seattle"
+    }
+  ]
+);
+
+exports.udf3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.address.city, udf.SEALEVEL(f.address.city) AS seaLevel
+      FROM Families f
+    `,
+    udf: {
+      SEALEVEL(city: string) {
+        switch (city) {
+          case "seattle":
+            return 520;
+          case "NY":
+            return 410;
+          case "Chicago":
+            return 673;
+          default:
+            return -1;
+        }
+      }
+    }
+  },
+  [
+    {
+      city: "seattle",
+      seaLevel: 520
+    },
+    {
+      city: "NY",
+      seaLevel: 410
+    }
+  ]
+);
+
 exports.parameterized = testQuery(
   collection,
   {

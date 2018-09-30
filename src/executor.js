@@ -7,8 +7,13 @@ module.exports = (
   collection: any[],
   {
     code,
-    parameters
-  }: { code: string, parameters?: { name: string, value: any }[] }
+    parameters,
+    udf
+  }: {
+    code: string,
+    parameters?: { name: string, value: any }[],
+    udf?: Object
+  }
 ) => {
   // eslint-disable-next-line no-new-func
   const execute = new Function(`"use strict";return (${code})`)();
@@ -24,6 +29,7 @@ module.exports = (
     builtinFunctions,
     collection,
     helpers,
+    udf,
     params
   );
 };

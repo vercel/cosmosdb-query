@@ -6,13 +6,19 @@ module.exports = (
   collection: ?(any[]),
   params: {
     query: string,
-    parameters?: { name: string, value: any }[]
+    parameters?: { name: string, value: any }[],
+    udf?: Object
   },
   expected: any[] | Error | Object
 ) => () => {
+  const opts = {
+    parameters: params.parameters,
+    udf: params.udf
+  };
+
   if (expected instanceof Error || expected.prototype instanceof Error) {
     assert.throws(
-      () => query(params.query).exec(collection, params.parameters),
+      () => query(params.query).exec(collection, opts),
       err => {
         if (expected instanceof Error) {
           const e = (expected: Error);
@@ -25,6 +31,6 @@ module.exports = (
     return;
   }
 
-  const docs = query(params.query).exec(collection, params.parameters);
+  const docs = query(params.query).exec(collection, opts);
   assert.deepStrictEqual(docs, expected);
 };

@@ -29,13 +29,22 @@ class Query {
     return this._code;
   }
 
-  exec(coll: {}[], parameters?: { name: string, value: any }[]) {
+  exec(
+    coll: {}[],
+    {
+      parameters,
+      udf
+    }: {
+      parameters?: { name: string, value: any }[],
+      udf?: Object
+    } = {}
+  ) {
     const { code } = this;
     if (!code) {
       throw new Error("Missing code");
     }
 
-    return execute(coll, { code, parameters });
+    return execute(coll, { code, parameters, udf });
   }
 
   containsPartitionKeys(paths: string[]) {

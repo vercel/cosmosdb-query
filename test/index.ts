@@ -1,7 +1,6 @@
-// @flow
 // test examples on https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query
 
-const testQuery = require("./utils/test-query");
+import testQuery from "./utils/test-query";
 
 const collection = [
   {
@@ -48,15 +47,19 @@ const collection = [
   }
 ];
 
-exports.all = testQuery(collection, { query: "SELECT * FROM c" }, collection);
+export const all = testQuery(
+  collection,
+  { query: "SELECT * FROM c" },
+  collection
+);
 
-exports.query1 = testQuery(
+export const query1 = testQuery(
   collection,
   { query: 'SELECT * FROM Families f WHERE f.id = "AndersenFamily"' },
   collection.filter(({ id }) => id === "AndersenFamily")
 );
 
-exports.query2 = testQuery(
+export const query2 = testQuery(
   collection,
   {
     query: `
@@ -75,7 +78,7 @@ exports.query2 = testQuery(
   ]
 );
 
-exports.query3 = testQuery(
+export const query3 = testQuery(
   collection,
   {
     query: `
@@ -89,7 +92,7 @@ exports.query3 = testQuery(
   [{ givenName: "Jesse" }, { givenName: "Lisa" }]
 );
 
-exports.select = testQuery(
+export const select = testQuery(
   collection,
   { query: 'SELECT f.address FROM Families f WHERE f.id = "AndersenFamily"' },
   collection
@@ -97,7 +100,7 @@ exports.select = testQuery(
     .map(({ address }) => ({ address }))
 );
 
-exports.nestedProperties = testQuery(
+export const nestedProperties = testQuery(
   collection,
   {
     query:
@@ -108,7 +111,7 @@ exports.nestedProperties = testQuery(
     .map(({ address: { state, city } }) => ({ state, city }))
 );
 
-exports.JSONExpressions = testQuery(
+export const JSONExpressions = testQuery(
   collection,
   {
     query: `
@@ -117,12 +120,14 @@ exports.JSONExpressions = testQuery(
       WHERE f.id = "AndersenFamily"
     `
   },
-  collection.filter(f => f.id === "AndersenFamily").map(f => ({
-    $1: { state: f.address.state, city: f.address.city, name: f.id }
-  }))
+  collection
+    .filter(f => f.id === "AndersenFamily")
+    .map(f => ({
+      $1: { state: f.address.state, city: f.address.city, name: f.id }
+    }))
 );
 
-exports.implicitArgumentVariables = testQuery(
+export const implicitArgumentVariables = testQuery(
   collection,
   {
     query: `
@@ -132,25 +137,27 @@ exports.implicitArgumentVariables = testQuery(
       WHERE f.id = "AndersenFamily"
     `
   },
-  collection.filter(f => f.id === "AndersenFamily").map(f => ({
-    $1: { state: f.address.state, city: f.address.city },
-    $2: { name: f.id }
-  }))
+  collection
+    .filter(f => f.id === "AndersenFamily")
+    .map(f => ({
+      $1: { state: f.address.state, city: f.address.city },
+      $2: { name: f.id }
+    }))
 );
 
-exports.subdocuments = testQuery(
+export const subdocuments = testQuery(
   collection,
   { query: "SELECT * FROM Families.children" },
   collection.map(Families => Families.children)
 );
 
-exports.subdocumentsExcluded = testQuery(
+export const subdocumentsExcluded = testQuery(
   collection,
   { query: "SELECT * FROM Families.address.state" },
   collection.map(Families => Families.address.state).filter(v => v != null)
 );
 
-exports.binaryOperator1 = testQuery(
+export const binaryOperator1 = testQuery(
   collection,
   {
     query: `
@@ -164,7 +171,7 @@ exports.binaryOperator1 = testQuery(
     .filter(c => c.grade % 2 === 1)
 );
 
-exports.binaryOperator2 = testQuery(
+export const binaryOperator2 = testQuery(
   collection,
   {
     query: `
@@ -179,7 +186,7 @@ exports.binaryOperator2 = testQuery(
     .filter(c => (c.grade ^ 4) === 1)
 );
 
-exports.binaryOperator3 = testQuery(
+export const binaryOperator3 = testQuery(
   collection,
   {
     query: `
@@ -191,7 +198,7 @@ exports.binaryOperator3 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => c.grade >= 5)
 );
 
-exports.unaryOperator1 = testQuery(
+export const unaryOperator1 = testQuery(
   collection,
   {
     query: `
@@ -203,7 +210,7 @@ exports.unaryOperator1 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => !(c.grade === 5))
 );
 
-exports.unaryOperator2 = testQuery(
+export const unaryOperator2 = testQuery(
   collection,
   {
     query: `
@@ -215,7 +222,7 @@ exports.unaryOperator2 = testQuery(
   collection.map(Families => Families.children[0]).filter(c => -c.grade === -5)
 );
 
-exports.betweenKeyword1 = testQuery(
+export const betweenKeyword1 = testQuery(
   collection,
   {
     query: `
@@ -229,7 +236,7 @@ exports.betweenKeyword1 = testQuery(
     .filter(c => c.grade >= 1 && c.grade <= 5)
 );
 
-exports.betweenKeyword2 = testQuery(
+export const betweenKeyword2 = testQuery(
   collection,
   {
     query: `
@@ -242,7 +249,7 @@ exports.betweenKeyword2 = testQuery(
     .map(c => ({ $1: c.grade >= 0 && c.grade <= 10 }))
 );
 
-exports.inKeyword1 = testQuery(
+export const inKeyword1 = testQuery(
   collection,
   {
     query: `
@@ -256,7 +263,7 @@ exports.inKeyword1 = testQuery(
   )
 );
 
-exports.inKeyword2 = testQuery(
+export const inKeyword2 = testQuery(
   collection,
   {
     query: `
@@ -272,7 +279,7 @@ exports.inKeyword2 = testQuery(
   )
 );
 
-exports.ternaryOperator1 = testQuery(
+export const ternaryOperator1 = testQuery(
   collection,
   {
     query: `
@@ -285,7 +292,7 @@ exports.ternaryOperator1 = testQuery(
     .map(c => ({ gradeLevel: c.grade < 5 ? "elementary" : "other" }))
 );
 
-exports.ternaryOperator2 = testQuery(
+export const ternaryOperator2 = testQuery(
   collection,
   {
     query: `
@@ -293,13 +300,15 @@ exports.ternaryOperator2 = testQuery(
       FROM Families.children[0] c
     `
   },
-  collection.map(Families => Families.children[0]).map(c => ({
-    // eslint-disable-next-line no-nested-ternary
-    gradeLevel: c.grade < 5 ? "elementary" : c.grade < 9 ? "junior" : "high"
-  }))
+  collection
+    .map(Families => Families.children[0])
+    .map(c => ({
+      // eslint-disable-next-line no-nested-ternary
+      gradeLevel: c.grade < 5 ? "elementary" : c.grade < 9 ? "junior" : "high"
+    }))
 );
 
-exports.coalesceOperator = testQuery(
+export const coalesceOperator = testQuery(
   collection,
   {
     query: `
@@ -310,7 +319,7 @@ exports.coalesceOperator = testQuery(
   [{ familyName: "Andersen" }, {}]
 );
 
-exports.quotedPropertyAccessor = testQuery(
+export const quotedPropertyAccessor = testQuery(
   collection,
   {
     query: `
@@ -324,7 +333,7 @@ exports.quotedPropertyAccessor = testQuery(
     .map(({ lastName }: { lastName?: string }) => ({ lastName }))
 );
 
-exports.aliasing = testQuery(
+export const aliasing = testQuery(
   collection,
   {
     query: `
@@ -335,25 +344,27 @@ exports.aliasing = testQuery(
       WHERE f.id = "AndersenFamily"
     `
   },
-  collection.filter(f => f.id === "AndersenFamily").map(f => ({
-    AddressInfo: { state: f.address.state, city: f.address.city },
-    NameInfo: { name: f.id }
-  }))
+  collection
+    .filter(f => f.id === "AndersenFamily")
+    .map(f => ({
+      AddressInfo: { state: f.address.state, city: f.address.city },
+      NameInfo: { name: f.id }
+    }))
 );
 
-exports.scalarExpressions1 = testQuery(
+export const scalarExpressions1 = testQuery(
   null,
   { query: 'SELECT "Hello World"' },
   [{ $1: "Hello World" }]
 );
 
-exports.scalarExpressions2 = testQuery(
+export const scalarExpressions2 = testQuery(
   null,
   { query: "SELECT ((2 + 11 % 7)-2)/3" },
   [{ $1: (2 + (11 % 7) - 2) / 3 }]
 );
 
-exports.scalarExpressions3 = testQuery(
+export const scalarExpressions3 = testQuery(
   collection,
   {
     query: `
@@ -366,7 +377,7 @@ exports.scalarExpressions3 = testQuery(
   }))
 );
 
-exports.objectAndArrayCreation = testQuery(
+export const objectAndArrayCreation = testQuery(
   collection,
   {
     query: `
@@ -377,7 +388,7 @@ exports.objectAndArrayCreation = testQuery(
   collection.map(f => ({ CityState: [f.address.city, f.address.state] }))
 );
 
-exports.valueKeyword1 = testQuery(
+export const valueKeyword1 = testQuery(
   null,
   {
     query: 'SELECT VALUE "Hello World"'
@@ -385,7 +396,7 @@ exports.valueKeyword1 = testQuery(
   ["Hello World"]
 );
 
-exports.valueKeyword2 = testQuery(
+export const valueKeyword2 = testQuery(
   collection,
   {
     query: `
@@ -396,7 +407,7 @@ exports.valueKeyword2 = testQuery(
   collection.map(f => f.address)
 );
 
-exports.valueKeyword3 = testQuery(
+export const valueKeyword3 = testQuery(
   collection,
   {
     query: `
@@ -407,7 +418,7 @@ exports.valueKeyword3 = testQuery(
   collection.map(f => f.address.state)
 );
 
-exports.asteriskOperator = testQuery(
+export const asteriskOperator = testQuery(
   collection,
   {
     query: `
@@ -419,7 +430,7 @@ exports.asteriskOperator = testQuery(
   collection.filter(f => f.id === "AndersenFamily")
 );
 
-exports.topOperator = testQuery(
+export const topOperator = testQuery(
   collection,
   {
     query: `
@@ -430,7 +441,7 @@ exports.topOperator = testQuery(
   collection.slice(0, 1)
 );
 
-exports.aggregateFunctions1 = testQuery(
+export const aggregateFunctions1 = testQuery(
   collection,
   {
     query: `
@@ -441,7 +452,7 @@ exports.aggregateFunctions1 = testQuery(
   [{ $1: 2 }]
 );
 
-exports.aggregateFunctions2 = testQuery(
+export const aggregateFunctions2 = testQuery(
   collection,
   {
     query: `
@@ -452,7 +463,7 @@ exports.aggregateFunctions2 = testQuery(
   [2]
 );
 
-exports.aggregateFunctions3 = testQuery(
+export const aggregateFunctions3 = testQuery(
   collection,
   {
     query: `
@@ -464,7 +475,7 @@ exports.aggregateFunctions3 = testQuery(
   [1]
 );
 
-exports.orderByClause1 = testQuery(
+export const orderByClause1 = testQuery(
   collection,
   {
     query: `
@@ -485,7 +496,7 @@ exports.orderByClause1 = testQuery(
   ]
 );
 
-exports.orderByClause2 = testQuery(
+export const orderByClause2 = testQuery(
   collection,
   {
     query: `
@@ -506,13 +517,13 @@ exports.orderByClause2 = testQuery(
   ]
 );
 
-exports.iteration1 = testQuery(
+export const iteration1 = testQuery(
   collection,
   { query: "SELECT * FROM c IN Families.children" },
   collection.reduce((_, Families) => [..._, ...Families.children], [])
 );
 
-exports.iteration2 = testQuery(
+export const iteration2 = testQuery(
   collection,
   { query: "SELECT c.givenName FROM c IN Families.children WHERE c.grade = 8" },
   [
@@ -522,7 +533,7 @@ exports.iteration2 = testQuery(
   ]
 );
 
-exports.iteration3 = testQuery(
+export const iteration3 = testQuery(
   collection,
   {
     query: `
@@ -537,7 +548,7 @@ exports.iteration3 = testQuery(
   ]
 );
 
-exports.join1 = testQuery(
+export const join1 = testQuery(
   collection,
   {
     query: `
@@ -549,7 +560,7 @@ exports.join1 = testQuery(
   []
 );
 
-exports.join2 = testQuery(
+export const join2 = testQuery(
   collection,
   {
     query: `
@@ -568,7 +579,7 @@ exports.join2 = testQuery(
   ]
 );
 
-exports.join3 = testQuery(
+export const join3 = testQuery(
   collection,
   {
     query: `
@@ -590,7 +601,7 @@ exports.join3 = testQuery(
   ]
 );
 
-exports.join4 = testQuery(
+export const join4 = testQuery(
   collection,
   {
     query: `
@@ -623,7 +634,7 @@ exports.join4 = testQuery(
   ]
 );
 
-exports.join4 = testQuery(
+export const join5 = testQuery(
   collection,
   {
     query: `
@@ -651,7 +662,7 @@ const REGEX_MATCH = function REGEX_MATCH(input: string, pattern: string) {
   return input.match(pattern) !== null;
 };
 
-exports.udf1 = testQuery(
+export const udf1 = testQuery(
   collection,
   {
     query: `
@@ -670,7 +681,7 @@ exports.udf1 = testQuery(
   ]
 );
 
-exports.udf2 = testQuery(
+export const udf2 = testQuery(
   collection,
   {
     query: `
@@ -688,7 +699,7 @@ exports.udf2 = testQuery(
   ]
 );
 
-exports.udf3 = testQuery(
+export const udf3 = testQuery(
   collection,
   {
     query: `
@@ -722,7 +733,7 @@ exports.udf3 = testQuery(
   ]
 );
 
-exports.parameterized = testQuery(
+export const parameterized = testQuery(
   collection,
   {
     query:
@@ -735,19 +746,19 @@ exports.parameterized = testQuery(
   collection.filter(f => f.lastName === "Wakefield" && f.address.state === "NY")
 );
 
-exports.builtInMathematicalFunction = testQuery(
+export const builtInMathematicalFunction = testQuery(
   null,
   { query: "SELECT VALUE ABS(-4)" },
   [4]
 );
 
-exports.builtInTypeCheckingFunction = testQuery(
+export const builtInTypeCheckingFunction = testQuery(
   null,
   { query: "SELECT VALUE IS_NUMBER(-4)" },
   [true]
 );
 
-exports.builtInStringFunction1 = testQuery(
+export const builtInStringFunction1 = testQuery(
   collection,
   {
     query: `
@@ -758,7 +769,7 @@ exports.builtInStringFunction1 = testQuery(
   collection.map(Families => Families.id.toUpperCase())
 );
 
-exports.builtInStringFunction2 = testQuery(
+export const builtInStringFunction2 = testQuery(
   collection,
   {
     query: `
@@ -772,7 +783,7 @@ exports.builtInStringFunction2 = testQuery(
   }))
 );
 
-exports.builtInStringFunction3 = testQuery(
+export const builtInStringFunction3 = testQuery(
   collection,
   {
     query: `
@@ -786,7 +797,7 @@ exports.builtInStringFunction3 = testQuery(
     .map(Families => ({ id: Families.id, city: Families.address.city }))
 );
 
-exports.builtInArrayFunction1 = testQuery(
+export const builtInArrayFunction1 = testQuery(
   collection,
   {
     query: `
@@ -798,13 +809,14 @@ exports.builtInArrayFunction1 = testQuery(
   collection
     .filter(Families =>
       Families.parents.some(
-        (v: Object) => v.givenName === "Robin" && v.familyName === "Wakefield"
+        (v: { [x: string]: any }) =>
+          v.givenName === "Robin" && v.familyName === "Wakefield"
       )
     )
     .map(Families => ({ id: Families.id }))
 );
 
-exports.builtInArrayFunction2 = testQuery(
+export const builtInArrayFunction2 = testQuery(
   collection,
   {
     query: `

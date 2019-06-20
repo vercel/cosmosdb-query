@@ -1,6 +1,10 @@
-// @flow
+export const SUM = (a: number[]) =>
+  a.reduce((s, n) => {
+    if (typeof n === "undefined") return s;
+    return typeof n === "number" ? s + n : undefined;
+  }, 0);
 
-exports.AVG = (a: number[]) => {
+export const AVG = (a: number[]) => {
   if (
     !a.length ||
     a.some(v => typeof v !== "number" && typeof v !== "undefined")
@@ -8,13 +12,14 @@ exports.AVG = (a: number[]) => {
     return undefined;
   }
   const aa = a.filter(v => typeof v === "number");
-  const sum = exports.SUM(aa);
+  const sum = SUM(aa);
   return typeof sum !== "undefined" ? sum / aa.length : undefined;
 };
 
-exports.COUNT = (a: any[]) => a.filter(v => typeof v !== "undefined").length;
+export const COUNT = (a: any[]) =>
+  a.filter(v => typeof v !== "undefined").length;
 
-exports.MAX = (a: any[]) => {
+export const MAX = (a: any[]) => {
   if (!a.length || a.some(v => v && typeof v === "object")) {
     return undefined;
   }
@@ -27,15 +32,9 @@ exports.MAX = (a: any[]) => {
     }, undefined);
 };
 
-exports.MIN = (a: any[]) => {
+export const MIN = (a: any[]) => {
   if (!a.length || a.some(v => typeof v !== "number")) {
     return undefined;
   }
   return Math.min(...a);
 };
-
-exports.SUM = (a: number[]) =>
-  a.reduce((s, n) => {
-    if (typeof n === "undefined") return s;
-    return typeof n === "number" ? s + n : undefined;
-  }, 0);

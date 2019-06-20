@@ -1,61 +1,65 @@
-// @flow
 // test examples on https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query-reference#bk_built_in_functions
 
-const testQuery = require("./utils/test-query");
+import testQuery from "./utils/test-query";
 
-const test = (query, expected) => testQuery(null, { query }, expected);
+const test = (query: string, expected: any) =>
+  testQuery(null, { query }, expected);
 
-exports.ABS = test("SELECT ABS(-1), ABS(0), ABS(1)", [{ $1: 1, $2: 0, $3: 1 }]);
+export const ABS = test("SELECT ABS(-1), ABS(0), ABS(1)", [
+  { $1: 1, $2: 0, $3: 1 }
+]);
 
-exports.ACOS = test("SELECT ACOS(-1)", [{ $1: 3.1415926535897931 }]);
+export const ACOS = test("SELECT ACOS(-1)", [{ $1: 3.1415926535897931 }]);
 
-exports.ASIN = test("SELECT ASIN(-1)", [{ $1: -1.5707963267948966 }]);
+export const ASIN = test("SELECT ASIN(-1)", [{ $1: -1.5707963267948966 }]);
 
-exports.ATAN = test("SELECT ATAN(-45.01)", [{ $1: -1.5485826962062663 }]);
+export const ATAN = test("SELECT ATAN(-45.01)", [{ $1: -1.5485826962062663 }]);
 
-exports.ATN2 = test("SELECT ATN2(35.175643, 129.44)", [
+export const ATN2 = test("SELECT ATN2(35.175643, 129.44)", [
   { $1: 1.3054517947300646 }
 ]);
 
-exports.CEILING = test(
+export const CEILING = test(
   `
     SELECT CEILING(123.45), CEILING(-123.45), CEILING(0.0)
   `,
   [{ $1: 124, $2: -123, $3: 0 }]
 );
 
-exports.COS = test("SELECT COS(14.78)", [{ $1: -0.59946542619465426 }]);
+export const COS = test("SELECT COS(14.78)", [{ $1: -0.59946542619465426 }]);
 
-exports.COT = test("SELECT COT(124.1332)", [{ $1: -0.040311998371148884 }]);
+export const COT = test("SELECT COT(124.1332)", [
+  { $1: -0.040311998371148884 }
+]);
 
-exports.DEGREES = test("SELECT DEGREES(PI()/2)", [{ $1: 90 }]);
+export const DEGREES = test("SELECT DEGREES(PI()/2)", [{ $1: 90 }]);
 
-exports.EXP1 = test("SELECT EXP(10)", [{ $1: 22026.465794806718 }]);
+export const EXP1 = test("SELECT EXP(10)", [{ $1: 22026.465794806718 }]);
 
-exports.EXP2 = test("SELECT EXP(LOG(20)), LOG(EXP(20))", [
+export const EXP2 = test("SELECT EXP(LOG(20)), LOG(EXP(20))", [
   { $1: 19.999999999999996, $2: 20 }
 ]);
 
-exports.FLOOR = test(
+export const FLOOR = test(
   `
     SELECT FLOOR(123.45), FLOOR(-123.45), FLOOR(0.0)
   `,
   [{ $1: 123, $2: -124, $3: 0 }]
 );
 
-exports.LOG_1 = test("SELECT LOG(10)", [{ $1: 2.3025850929940459 }]);
+export const LOG_1 = test("SELECT LOG(10)", [{ $1: 2.3025850929940459 }]);
 
-exports.LOG_2 = test("SELECT EXP(LOG(10))", [{ $1: 10.000000000000002 }]);
+export const LOG_2 = test("SELECT EXP(LOG(10))", [{ $1: 10.000000000000002 }]);
 
-exports.LOG10 = test("SELECT LOG10(100)", [{ $1: 2 }]);
+export const LOG10 = test("SELECT LOG10(100)", [{ $1: 2 }]);
 
-exports.PI = test("SELECT PI()", [{ $1: 3.1415926535897931 }]);
+export const PI = test("SELECT PI()", [{ $1: 3.1415926535897931 }]);
 
-exports.POWER = test("SELECT POWER(2, 3), POWER(2.5, 3)", [
+export const POWER = test("SELECT POWER(2, 3), POWER(2.5, 3)", [
   { $1: 8, $2: 15.625 }
 ]);
 
-exports.RADIANS = test(
+export const RADIANS = test(
   "SELECT RADIANS(-45.01), RADIANS(-181.01), RADIANS(0), RADIANS(0.1472738), RADIANS(197.1099392)",
   [
     {
@@ -68,35 +72,36 @@ exports.RADIANS = test(
   ]
 );
 
-exports.ROUND = test(
+export const ROUND = test(
   `
     SELECT ROUND(2.4), ROUND(2.6), ROUND(2.5), ROUND(-2.4), ROUND(-2.6)
   `,
   [{ $1: 2, $2: 3, $3: 3, $4: -2, $5: -3 }]
 );
 
-exports.SIGN = test("SELECT SIGN(-2), SIGN(-1), SIGN(0), SIGN(1), SIGN(2)", [
-  { $1: -1, $2: -1, $3: 0, $4: 1, $5: 1 }
-]);
+export const SIGN = test(
+  "SELECT SIGN(-2), SIGN(-1), SIGN(0), SIGN(1), SIGN(2)",
+  [{ $1: -1, $2: -1, $3: 0, $4: 1, $5: 1 }]
+);
 
-exports.SIN = test("SELECT SIN(45.175643)", [{ $1: 0.929607286611012 }]);
+export const SIN = test("SELECT SIN(45.175643)", [{ $1: 0.929607286611012 }]);
 
-exports.SQRT = test("SELECT SQRT(1), SQRT(2.0), SQRT(3)", [
+export const SQRT = test("SELECT SQRT(1), SQRT(2.0), SQRT(3)", [
   { $1: 1, $2: 1.4142135623730952, $3: 1.7320508075688772 }
 ]);
 
-exports.SQUARE = test("SELECT SQUARE(1), SQUARE(2.0), SQUARE(3)", [
+export const SQUARE = test("SELECT SQUARE(1), SQUARE(2.0), SQUARE(3)", [
   { $1: 1, $2: 4, $3: 9 }
 ]);
 
-exports.TAN = test("SELECT TAN(PI()/2)", [{ $1: 16331239353195370 }]);
+export const TAN = test("SELECT TAN(PI()/2)", [{ $1: 16331239353195370 }]);
 
-exports.TRUNC = test(
+export const TRUNC = test(
   "SELECT TRUNC(2.4), TRUNC(2.6), TRUNC(2.5), TRUNC(-2.4), TRUNC(-2.6)",
   [{ $1: 2, $2: 2, $3: 2, $4: -2, $5: -2 }]
 );
 
-exports.IS_ARRAY = test(
+export const IS_ARRAY = test(
   `
   SELECT
     IS_ARRAY(true),
@@ -120,7 +125,7 @@ exports.IS_ARRAY = test(
   ]
 );
 
-exports.IS_BOOL = test(
+export const IS_BOOL = test(
   `
     SELECT
       IS_BOOL(true),
@@ -144,7 +149,7 @@ exports.IS_BOOL = test(
   ]
 );
 
-exports.IS_DEFINED = test(
+export const IS_DEFINED = test(
   `
     SELECT IS_DEFINED({ "a" : 5 }.a), IS_DEFINED({ "a" : 5 }.b)
   `,
@@ -156,7 +161,7 @@ exports.IS_DEFINED = test(
   ]
 );
 
-exports.IS_NULL = test(
+export const IS_NULL = test(
   `
     SELECT
       IS_NULL(true),
@@ -180,7 +185,7 @@ exports.IS_NULL = test(
   ]
 );
 
-exports.IS_NUMBER = test(
+export const IS_NUMBER = test(
   `
     SELECT
       IS_NUMBER(true),
@@ -204,7 +209,7 @@ exports.IS_NUMBER = test(
   ]
 );
 
-exports.IS_OBJECT = test(
+export const IS_OBJECT = test(
   `
     SELECT
       IS_OBJECT(true),
@@ -228,7 +233,7 @@ exports.IS_OBJECT = test(
   ]
 );
 
-exports.IS_PRIMITIVE = test(
+export const IS_PRIMITIVE = test(
   `
     SELECT
       IS_PRIMITIVE(true),
@@ -242,7 +247,7 @@ exports.IS_PRIMITIVE = test(
   [{ $1: true, $2: true, $3: true, $4: true, $5: false, $6: false, $7: false }]
 );
 
-exports.IS_STRING = test(
+export const IS_STRING = test(
   `
     SELECT
       IS_STRING(true),
@@ -266,89 +271,93 @@ exports.IS_STRING = test(
   ]
 );
 
-exports.CONCAT = test(
+export const CONCAT = test(
   `
     SELECT CONCAT("abc", "def")
   `,
   [{ $1: "abcdef" }]
 );
 
-exports.CONTAINS = test(
+export const CONTAINS = test(
   `
     SELECT CONTAINS("abc", "ab"), CONTAINS("abc", "d")
   `,
   [{ $1: true, $2: false }]
 );
 
-exports.ENDSWITH = test('SELECT ENDSWITH("abc", "b"), ENDSWITH("abc", "bc")', [
-  { $1: false, $2: true }
-]);
+export const ENDSWITH = test(
+  'SELECT ENDSWITH("abc", "b"), ENDSWITH("abc", "bc")',
+  [{ $1: false, $2: true }]
+);
 
-exports.INDEX_OF = test(
+export const INDEX_OF = test(
   `
     SELECT INDEX_OF("abc", "ab"), INDEX_OF("abc", "b"), INDEX_OF("abc", "d")
   `,
   [{ $1: 0, $2: 1, $3: -1 }]
 );
 
-exports.LEFT = test('SELECT LEFT("abc", 1), LEFT("abc", 2)', [
+export const LEFT = test('SELECT LEFT("abc", 1), LEFT("abc", 2)', [
   { $1: "a", $2: "ab" }
 ]);
 
-exports.LENGTH = test(
+export const LENGTH = test(
   `
     SELECT LENGTH("abc")
   `,
   [{ $1: 3 }]
 );
 
-exports.LOWER = test(
+export const LOWER = test(
   `
     SELECT LOWER("Abc")
   `,
   [{ $1: "abc" }]
 );
 
-exports.LTRIM = test('SELECT LTRIM("  abc"), LTRIM("abc"), LTRIM("abc   ")', [
-  { $1: "abc", $2: "abc", $3: "abc   " }
-]);
+export const LTRIM = test(
+  'SELECT LTRIM("  abc"), LTRIM("abc"), LTRIM("abc   ")',
+  [{ $1: "abc", $2: "abc", $3: "abc   " }]
+);
 
-exports.REPLACE = test('SELECT REPLACE("This is a Test", "Test", "desk")', [
-  { $1: "This is a desk" }
-]);
+export const REPLACE = test(
+  'SELECT REPLACE("This is a Test", "Test", "desk")',
+  [{ $1: "This is a desk" }]
+);
 
-exports.REPLICATE = test('SELECT REPLICATE("a", 3)', [{ $1: "aaa" }]);
+export const REPLICATE = test('SELECT REPLICATE("a", 3)', [{ $1: "aaa" }]);
 
-exports.REVERSE = test(
+export const REVERSE = test(
   `
     SELECT REVERSE("Abc")
   `,
   [{ $1: "cbA" }]
 );
 
-exports.RIGHT = test('SELECT RIGHT("abc", 1), RIGHT("abc", 2)', [
+export const RIGHT = test('SELECT RIGHT("abc", 1), RIGHT("abc", 2)', [
   { $1: "c", $2: "bc" }
 ]);
 
-exports.RTRIM = test('SELECT RTRIM("  abc"), RTRIM("abc"), RTRIM("abc   ")', [
-  { $1: "  abc", $2: "abc", $3: "abc" }
-]);
+export const RTRIM = test(
+  'SELECT RTRIM("  abc"), RTRIM("abc"), RTRIM("abc   ")',
+  [{ $1: "  abc", $2: "abc", $3: "abc" }]
+);
 
-exports.STARTSWITH = test(
+export const STARTSWITH = test(
   `
     SELECT STARTSWITH("abc", "b"), STARTSWITH("abc", "a")
   `,
   [{ $1: false, $2: true }]
 );
 
-exports.SUBSTRING = test(
+export const SUBSTRING = test(
   `
     SELECT SUBSTRING("abc", 1, 1)
   `,
   [{ $1: "b" }]
 );
 
-exports.ToString1 = test(
+export const ToString1 = test(
   `
     SELECT ToString(1.0000), ToString("Hello World"), ToString(NaN), ToString(Infinity),
     ToString(IS_STRING(ToString(undefined))), IS_STRING(ToString(0.1234)), ToString(false), ToString(undefined)
@@ -366,7 +375,7 @@ exports.ToString1 = test(
   ]
 );
 
-exports.ToString2 = testQuery(
+export const ToString2 = testQuery(
   [
     {
       Products: [
@@ -387,7 +396,7 @@ exports.ToString2 = testQuery(
   [{ $1: "4lb" }, { $1: "32kg" }, { $1: "400g" }, { $1: "8999mg" }]
 );
 
-exports.ToString3 = testQuery(
+export const ToString3 = testQuery(
   [
     {
       id: "08259",
@@ -439,28 +448,28 @@ exports.ToString3 = testQuery(
   ]
 );
 
-exports.TRIM = test(
+export const TRIM = test(
   `
     SELECT TRIM("   abc"), TRIM("   abc   "), TRIM("abc   "), TRIM("abc")
   `,
   [{ $1: "abc", $2: "abc", $3: "abc", $4: "abc" }]
 );
 
-exports.UPPER = test(
+export const UPPER = test(
   `
     SELECT UPPER("Abc")
   `,
   [{ $1: "ABC" }]
 );
 
-exports.ARRAY_CONCAT = test(
+export const ARRAY_CONCAT = test(
   `
     SELECT ARRAY_CONCAT(["apples", "strawberries"], ["bananas"])
   `,
   [{ $1: ["apples", "strawberries", "bananas"] }]
 );
 
-exports.ARRAY_CONTAINS1 = test(
+export const ARRAY_CONTAINS1 = test(
   `
     SELECT
       ARRAY_CONTAINS(["apples", "strawberries", "bananas"], "apples"),
@@ -469,7 +478,7 @@ exports.ARRAY_CONTAINS1 = test(
   [{ $1: true, $2: false }]
 );
 
-exports.ARRAY_CONTAINS2 = test(
+export const ARRAY_CONTAINS2 = test(
   `
     SELECT
       ARRAY_CONTAINS([{"name": "apples", "fresh": true}, {"name": "strawberries", "fresh": true}], {"name": "apples"}, true),
@@ -485,14 +494,14 @@ exports.ARRAY_CONTAINS2 = test(
   ]
 );
 
-exports.ARRAY_LENGTH = test(
+export const ARRAY_LENGTH = test(
   `
     SELECT ARRAY_LENGTH(["apples", "strawberries", "bananas"])
   `,
   [{ $1: 3 }]
 );
 
-exports.ARRAY_SLICE = test(
+export const ARRAY_SLICE = test(
   `
     SELECT
       ARRAY_SLICE(["apples", "strawberries", "bananas"], 1),

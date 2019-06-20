@@ -1,7 +1,7 @@
-// @flow
-const testQuery = require("./utils/test-query");
+import testQuery from "./utils/test-query";
 
-exports.root = testQuery(
+// eslint-disable-next-line import/prefer-default-export
+export const root = testQuery(
   [
     {
       id: 1,

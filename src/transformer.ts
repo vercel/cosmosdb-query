@@ -1,8 +1,13 @@
-// @flow
-const { default: traverse } = require("@babel/traverse");
-const aggregateFunctions = require("./aggregate-functions");
+import traverse from "@babel/traverse";
+import * as aggregateFunctions from "./aggregate-functions";
 
-function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
+type Context = {
+  ast?: any;
+  document?: any;
+  aggregation?: boolean;
+};
+
+function transform(ctx: Context, node: { [x: string]: any }) {
   // eslint-disable-next-line no-use-before-define
   const def = definitions[node.type];
   if (!def) {
@@ -12,10 +17,17 @@ function transform(ctx: { ast?: Object, document?: Object }, node: Object) {
   return def(ctx, node);
 }
 
-function isAggregateFunction({ type, name, udf }) {
+function isAggregateFunction({
+  type,
+  name,
+  udf
+}: {
+  type: string;
+  name: any;
+  udf: boolean;
+}) {
   return (
     type === "scalar_function_expression" &&
-    // $FlowFixMe
     Object.prototype.hasOwnProperty.call(
       aggregateFunctions,
       name.name.toUpperCase()
@@ -24,7 +36,7 @@ function isAggregateFunction({ type, name, udf }) {
   );
 }
 
-function strictTrueNode(node) {
+function strictTrueNode(node: any) {
   return {
     type: "BinaryExpression",
     left: node,
@@ -36,7 +48,7 @@ function strictTrueNode(node) {
   };
 }
 
-function isNotUndefinedNode(argument) {
+function isNotUndefinedNode(argument: any) {
   return {
     type: "BinaryExpression",
     left: {
@@ -53,7 +65,7 @@ function isNotUndefinedNode(argument) {
   };
 }
 
-function callHelperNode(name, ...args) {
+function callHelperNode(name: string, ...args: any[]) {
   return {
     type: "CallExpression",
     callee: {
@@ -71,26 +83,39 @@ function callHelperNode(name, ...args) {
   };
 }
 
-const definitions = {
-  array_constant(ctx, { elements }) {
+const definitions: { [key: string]: Function } = {
+  array_constant(
+    ctx: Context,
+    { elements }: { elements: any[] }
+  ): { type: string; elements: any[] } {
     return {
       type: "ArrayExpression",
       elements: elements.map(v => transform(ctx, v))
     };
   },
 
-  boolean_constant(ctx, { value }) {
+  boolean_constant(ctx: Context, { value }: { value: boolean }) {
     return {
       type: "BooleanLiteral",
       value
     };
   },
 
-  collection_expression(ctx, { expression }) {
+  collection_expression(
+    ctx: Context,
+    { expression }: { expression: any }
+  ): any {
     return transform(ctx, expression);
   },
 
-  collection_member_expression(ctx, { object, property, computed }) {
+  collection_member_expression(
+    ctx: Context,
+    {
+      object,
+      property,
+      computed
+    }: { object: any; property: any; computed: boolean }
+  ) {
     return {
       type: "MemberExpression",
       object: transform(ctx, object),
@@ -99,7 +124,7 @@ const definitions = {
     };
   },
 
-  filter_condition(ctx, { condition }) {
+  filter_condition(ctx: Context, { condition }: { condition: any }) {
     return {
       type: "CallExpression",
       callee: {
@@ -120,11 +145,23 @@ const definitions = {
     };
   },
 
-  from_source(ctx, { expression, alias }) {
+  from_source(
+    ctx: Context,
+    { expression, alias }: { expression: any; alias?: any }
+  ) {
     return transform(ctx, alias || expression);
   },
 
-  from_specification(ctx, { source, joins }) {
+  from_specification(
+    ctx: Context,
+    {
+      source,
+      joins
+    }: {
+      source: { expression: any; alias?: any; iteration?: boolean };
+      joins?: { expression: any; alias?: any; iteration?: boolean }[];
+    }
+  ) {
     return [source, ...(joins || [])].reduce(
       (object, { expression, alias, iteration }) => {
         const exp = transform(ctx, expression);
@@ -135,18 +172,15 @@ const definitions = {
           if (exp.type !== "MemberExpression") {
             ctx.document = exp;
           } else {
-            traverse(
-              { type: "Program", body: [exp] },
-              {
-                MemberExpression(path) {
-                  const { object: o } = path.node;
-                  if (o.type === "Identifier") {
-                    ctx.document = o;
-                    path.stop();
-                  }
+            traverse({ type: "Program", body: [exp] } as any, {
+              MemberExpression(path: any) {
+                const { object: o } = path.node;
+                if (o.type === "Identifier") {
+                  ctx.document = o;
+                  path.stop();
                 }
               }
-            );
+            });
           }
         }
 
@@ -325,7 +359,7 @@ const definitions = {
     );
   },
 
-  identifier(ctx, { name }) {
+  identifier(ctx: Context, { name }: { name: string }) {
     return {
       type: "Identifier",
       name
@@ -336,14 +370,17 @@ const definitions = {
     return { type: "NullLiteral" };
   },
 
-  number_constant(ctx, { value }) {
+  number_constant(ctx: Context, { value }: { value: number }) {
     return {
       type: "NumericLiteral",
       value
     };
   },
 
-  object_constant(ctx, { properties }) {
+  object_constant(
+    ctx: Context,
+    { properties }: { properties: { key: any; value: any }[] }
+  ) {
     return {
       type: "ObjectExpression",
       properties: properties.map(({ key, value }) => ({
@@ -354,7 +391,10 @@ const definitions = {
     };
   },
 
-  object_property_list(ctx, { properties }) {
+  object_property_list(
+    ctx: Context,
+    { properties }: { properties: { property: any; alias: any }[] }
+  ) {
     let n = 0;
     return {
       type: "ObjectExpression",
@@ -372,7 +412,7 @@ const definitions = {
     };
   },
 
-  parameter_name(ctx, { name }) {
+  parameter_name(ctx: Context, { name }: { name: string }) {
     return {
       type: "MemberExpression",
       object: {
@@ -386,14 +426,17 @@ const definitions = {
     };
   },
 
-  scalar_array_expression(ctx, { elements }) {
+  scalar_array_expression(ctx: Context, { elements }: { elements: any[] }) {
     return {
       type: "ArrayExpression",
       elements: elements.map(v => transform(ctx, v))
     };
   },
 
-  scalar_between_expression(ctx, { value, begin, end }) {
+  scalar_between_expression(
+    ctx: Context,
+    { value, begin, end }: { value: any; begin: any; end: any }
+  ) {
     const left = transform(ctx, value);
     return {
       type: "BinaryExpression",
@@ -413,7 +456,10 @@ const definitions = {
     };
   },
 
-  scalar_binary_expression(ctx, { left, operator, right }) {
+  scalar_binary_expression(
+    ctx: Context,
+    { left, operator, right }: { left: any; operator: string; right: any }
+  ) {
     const l = transform(ctx, left);
     const r = transform(ctx, right);
 
@@ -470,7 +516,14 @@ const definitions = {
     );
   },
 
-  scalar_conditional_expression(ctx, { test, consequent, alternate }) {
+  scalar_conditional_expression(
+    ctx: Context,
+    {
+      test,
+      consequent,
+      alternate
+    }: { test: any; consequent: any; alternate: any }
+  ) {
     return {
       type: "ConditionalExpression",
       test: strictTrueNode(transform(ctx, test)),
@@ -479,7 +532,15 @@ const definitions = {
     };
   },
 
-  scalar_function_expression(ctx, { type, name, arguments: args, udf }) {
+  scalar_function_expression(
+    ctx: Context,
+    {
+      type,
+      name,
+      arguments: args,
+      udf
+    }: { type: string; name: any; arguments: any[]; udf: boolean }
+  ) {
     const aggregation =
       ctx.aggregation && isAggregateFunction({ type, name, udf });
 
@@ -523,7 +584,10 @@ const definitions = {
     };
   },
 
-  scalar_in_expression(ctx, { value, list }) {
+  scalar_in_expression(
+    ctx: Context,
+    { value, list }: { value: any; list: any[] }
+  ) {
     return {
       type: "CallExpression",
       callee: {
@@ -541,7 +605,14 @@ const definitions = {
     };
   },
 
-  scalar_member_expression(ctx, { object, property, computed }) {
+  scalar_member_expression(
+    ctx: Context,
+    {
+      object,
+      property,
+      computed
+    }: { object: any; property: any; computed: boolean }
+  ) {
     return {
       type: "MemberExpression",
       object: transform(ctx, object),
@@ -550,7 +621,10 @@ const definitions = {
     };
   },
 
-  scalar_object_expression(ctx, { properties }) {
+  scalar_object_expression(
+    ctx: Context,
+    { properties }: { properties: any[] }
+  ) {
     return {
       type: "ObjectExpression",
       properties: properties.map(({ key, value }) => ({
@@ -561,7 +635,10 @@ const definitions = {
     };
   },
 
-  scalar_unary_expression(ctx, { operator, argument }) {
+  scalar_unary_expression(
+    ctx: Context,
+    { operator, argument }: { operator: string; argument: any }
+  ) {
     const node = transform(ctx, argument);
 
     if (operator === "NOT") {
@@ -578,7 +655,16 @@ const definitions = {
     );
   },
 
-  select_query(ctx, { top, select, from, where, orderBy }) {
+  select_query(
+    ctx: Context,
+    {
+      top,
+      select,
+      from,
+      where,
+      orderBy
+    }: { top: any; select: any; from: any; where: any; orderBy: any }
+  ) {
     if (from) {
       ctx.ast = {
         type: "Identifier",
@@ -653,7 +739,14 @@ const definitions = {
     };
   },
 
-  select_specification(ctx, { "*": all, properties, value }) {
+  select_specification(
+    ctx: Context,
+    {
+      "*": all,
+      properties,
+      value
+    }: { "*": boolean; properties?: { properties: any[] }; value: any }
+  ) {
     if (all) {
       if (ctx.document.properties > 1) {
         throw new Error("'SELECT *' is only valid with a single input set.");
@@ -727,7 +820,7 @@ const definitions = {
     };
   },
 
-  sort_specification(ctx, { expressions }) {
+  sort_specification(ctx: Context, { expressions }: { expressions: any[] }) {
     return callHelperNode(
       "sort",
       ctx.ast,
@@ -735,29 +828,29 @@ const definitions = {
     );
   },
 
-  sort_expression(ctx, { expression, order }) {
+  sort_expression(
+    ctx: Context,
+    { expression, order }: { expression: any; order: string }
+  ) {
     const node = transform(ctx, expression);
 
-    const elements = [];
+    const elements: any[] = [];
     if (node.type === "MemberExpression") {
-      traverse(
-        { type: "Program", body: [node] },
-        {
-          MemberExpression(path) {
+      traverse({ type: "Program", body: [node] } as any, {
+        MemberExpression(path: any) {
+          elements.unshift({
+            type: "StringLiteral",
+            value: path.node.property.name
+          });
+
+          if (path.node.object.type === "Identifier") {
             elements.unshift({
               type: "StringLiteral",
-              value: path.node.property.name
+              value: path.node.object.name
             });
-
-            if (path.node.object.type === "Identifier") {
-              elements.unshift({
-                type: "StringLiteral",
-                value: path.node.object.name
-              });
-            }
           }
         }
-      );
+      });
     }
 
     return {
@@ -775,14 +868,14 @@ const definitions = {
     };
   },
 
-  string_constant(ctx, { value }) {
+  string_constant(ctx: Context, { value }: { value: string }) {
     return {
       type: "StringLiteral",
       value
     };
   },
 
-  top_specification(ctx, { value }) {
+  top_specification(ctx: Context, { value }: { value: any }) {
     return {
       type: "CallExpression",
       callee: {
@@ -811,4 +904,4 @@ const definitions = {
   }
 };
 
-module.exports = (sqlAst: Object) => transform({}, sqlAst);
+export default (sqlAst: { [x: string]: any }) => transform({}, sqlAst);

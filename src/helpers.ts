@@ -1,5 +1,3 @@
-// @flow
-
 const typeOf = (v: any) => {
   const t = typeof v;
   if (t !== "object") return t;
@@ -13,13 +11,13 @@ const equalTypes = (a: any, b: any) => {
   return typeOfA === typeOfB && typeOfA !== "undefined";
 };
 
-const deepEqual = (a: any, b: any) => {
+const deepEqual = (a: any, b: any): boolean => {
   const typeOfA = typeOf(a);
   const typeOfB = typeOf(b);
 
   if (typeOfA === "array" && typeOfB === "array") {
-    if ((a: Array<any>).length !== (b: Array<any>).length) return false;
-    return a.every((v, i) => deepEqual(v, b[i]));
+    if ((a as Array<any>).length !== (b as Array<any>).length) return false;
+    return a.every((v: any, i: number) => deepEqual(v, b[i]));
   }
 
   if (typeOfA === "object" && typeOfB === "object") {
@@ -34,33 +32,39 @@ const deepEqual = (a: any, b: any) => {
 
 const TYPE_ORDERS = new Set(["boolean", "null", "string", "number"]);
 
-const prop = (obj: Object, keys: string[]) =>
-  keys.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
+const prop = (
+  obj: {
+    [x: string]: any;
+  },
+  keys: string[]
+) => keys.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
 
-exports.stripUndefined = (obj: any) => {
+export const stripUndefined = (obj: any): any => {
   if (Array.isArray(obj)) {
     // remove `undefined` from array unlike JSON
     return obj.reduce(
-      (o, v) =>
-        typeof v !== "undefined" ? [...o, exports.stripUndefined(v)] : o,
+      (o, v) => (typeof v !== "undefined" ? [...o, stripUndefined(v)] : o),
       []
     );
   }
 
   if (obj && typeof obj === "object") {
-    return Object.entries(obj).reduce((o, [k, v]) => {
-      if (typeof v !== "undefined") {
-        // eslint-disable-next-line no-param-reassign
-        o[k] = exports.stripUndefined(v);
-      }
-      return o;
-    }, {});
+    return Object.entries(obj).reduce(
+      (o, [k, v]) => {
+        if (typeof v !== "undefined") {
+          // eslint-disable-next-line no-param-reassign
+          o[k] = stripUndefined(v);
+        }
+        return o;
+      },
+      {} as any
+    );
   }
 
   return obj;
 };
 
-exports.equal = (a: any, b: any) => {
+export const equal = (a: any, b: any) => {
   if (!equalTypes(a, b)) {
     return undefined;
   }
@@ -68,12 +72,12 @@ exports.equal = (a: any, b: any) => {
   return deepEqual(a, b);
 };
 
-exports.notEqual = (a: any, b: any) => {
-  const eq = exports.equal(a, b);
+export const notEqual = (a: any, b: any) => {
+  const eq = equal(a, b);
   return typeof eq !== "undefined" ? !eq : eq;
 };
 
-exports.compare = (operator: string, a: any, b: any) => {
+export const compare = (operator: string, a: any, b: any) => {
   if (!equalTypes(a, b)) {
     return undefined;
   }
@@ -97,7 +101,7 @@ exports.compare = (operator: string, a: any, b: any) => {
   }
 };
 
-exports.and = (a: any, b: any) => {
+export const and = (a: any, b: any) => {
   if (typeof a !== "boolean" || typeof b !== "boolean") {
     return a === false || b === false ? false : undefined;
   }
@@ -105,7 +109,7 @@ exports.and = (a: any, b: any) => {
   return a && b;
 };
 
-exports.or = (a: any, b: any) => {
+export const or = (a: any, b: any) => {
   if (typeof a !== "boolean" || typeof b !== "boolean") {
     return a === true || b === true ? true : undefined;
   }
@@ -113,9 +117,9 @@ exports.or = (a: any, b: any) => {
   return a || b;
 };
 
-exports.not = (v: any) => (typeof v === "boolean" ? !v : undefined);
+export const not = (v: any) => (typeof v === "boolean" ? !v : undefined);
 
-exports.calculate = (operator: string, a: any, b: any) => {
+export const calculate = (operator: string, a: any, b: any) => {
   if (typeof a !== "number" || typeof b !== "number") {
     return undefined;
   }
@@ -154,7 +158,7 @@ exports.calculate = (operator: string, a: any, b: any) => {
   }
 };
 
-exports.calculateUnary = (operator: string, v: any) => {
+export const calculateUnary = (operator: string, v: any) => {
   if (typeof v !== "number") {
     return undefined;
   }
@@ -172,10 +176,15 @@ exports.calculateUnary = (operator: string, v: any) => {
   }
 };
 
-exports.concat = (a: any, b: any) =>
+export const concat = (a: any, b: any) =>
   typeof a === "string" && typeof b === "string" ? a + b : undefined;
 
-exports.sort = (collection: Object[], ...orders: [string[], boolean][]) => {
+export const sort = (
+  collection: {
+    [x: string]: any;
+  }[],
+  ...orders: [string[], boolean][]
+) => {
   if (
     !orders.length ||
     orders.some(([o]) => !Array.isArray(o) || o.length < 2)
@@ -197,15 +206,12 @@ exports.sort = (collection: Object[], ...orders: [string[], boolean][]) => {
       if (aType === bType) {
         if (TYPE_ORDERS.has(aType)) {
           if (aType === "string") {
-            // $FlowFixMe
             if (aValue < bValue) {
               r = -1;
-              // $FlowFixMe
             } else if (aValue > bValue) {
               r = 1;
             }
           } else {
-            // $FlowFixMe
             r = aValue - bValue;
           }
         }
@@ -245,6 +251,5 @@ exports.sort = (collection: Object[], ...orders: [string[], boolean][]) => {
     if (idx != null) break;
   }
 
-  // $FlowFixMe
   return idx != null && idx >= 0 ? sorted.slice(0, idx) : sorted;
 };

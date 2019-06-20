@@ -1,15 +1,24 @@
-// @flow
-const assert = require("assert");
-const query = require("../../lib");
+import * as assert from "assert";
+import query from "../../lib";
 
-module.exports = (
-  collection: ?(any[]),
+export default (
+  collection: any[] | undefined | null,
   params: {
-    query: string,
-    parameters?: { name: string, value: any }[],
-    udf?: Object
+    query: string;
+    parameters?: {
+      name: string;
+      value: any;
+    }[];
+    udf?: {
+      [x: string]: any;
+    };
   },
-  expected: any[] | Error | Object
+  expected:
+    | any
+    | Error
+    | {
+        [x: string]: any;
+      }
 ) => () => {
   const opts = {
     parameters: params.parameters,
@@ -19,12 +28,11 @@ module.exports = (
   if (expected instanceof Error || expected.prototype instanceof Error) {
     assert.throws(
       () => query(params.query).exec(collection, opts),
-      err => {
+      (err: Error) => {
         if (expected instanceof Error) {
-          const e = (expected: Error);
+          const e = expected as Error;
           return err.message === e.message && err.name === e.name;
         }
-        // $FlowFixMe
         return err instanceof expected || err.name === expected.name;
       }
     );

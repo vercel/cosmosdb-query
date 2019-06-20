@@ -1,7 +1,6 @@
-// @flow
-const testQuery = require("./utils/test-query");
+import testQuery from "./utils/test-query";
 
-exports.functionWrongNumberOfArgument = testQuery(
+export const functionWrongNumberOfArgument = testQuery(
   null,
   {
     query: "select ABS()"
@@ -9,7 +8,7 @@ exports.functionWrongNumberOfArgument = testQuery(
   new Error("The ABS function requires 1 argument(s)")
 );
 
-exports.reserved = testQuery(
+export const reserved = testQuery(
   [],
   {
     query: "select c.value from c"

@@ -1,7 +1,6 @@
-// @flow
-const testQuery = require("./utils/test-query");
+import testQuery from "./utils/test-query";
 
-exports.root = testQuery(
+export const root = testQuery(
   [{ id: "sample database" }],
   {
     query: "select * from root r where r.id=@id",
@@ -10,7 +9,7 @@ exports.root = testQuery(
   [{ id: "sample database" }]
 );
 
-exports.compareGreaterAndLess = testQuery(
+export const compareGreaterAndLess = testQuery(
   [{ id: "a", deletedAt: 10 }, { id: "b", deletedAt: 20 }],
   {
     query: "select * from c WHERE c.deletedAt < @a AND c.deletedAt > @b",
@@ -19,7 +18,7 @@ exports.compareGreaterAndLess = testQuery(
   [{ id: "a", deletedAt: 10 }]
 );
 
-exports.topMoreThan10 = testQuery(
+export const topMoreThan10 = testQuery(
   [{ id: "b" }, { id: "c" }, { id: "a" }],
   {
     query: "select top 123 * from c order by c.id"
@@ -27,7 +26,7 @@ exports.topMoreThan10 = testQuery(
   [{ id: "a" }, { id: "b" }, { id: "c" }]
 );
 
-exports.parameterizedTop = testQuery(
+export const parameterizedTop = testQuery(
   [{ id: "b" }, { id: "c" }, { id: "a" }],
   {
     query: "select top @top * from c order by c.id",
@@ -36,7 +35,7 @@ exports.parameterizedTop = testQuery(
   [{ id: "a" }]
 );
 
-exports.conditionStrictTrue1 = testQuery(
+export const conditionStrictTrue1 = testQuery(
   [{ id: "hi" }],
   {
     query: "select * from c where true"
@@ -44,7 +43,7 @@ exports.conditionStrictTrue1 = testQuery(
   [{ id: "hi" }]
 );
 
-exports.conditionStrictTrue2 = testQuery(
+export const conditionStrictTrue2 = testQuery(
   [{ id: "hi" }],
   {
     query: "select * from c where 1 OR true"
@@ -52,7 +51,7 @@ exports.conditionStrictTrue2 = testQuery(
   [{ id: "hi" }]
 );
 
-exports.conditionNotStrictTrue1 = testQuery(
+export const conditionNotStrictTrue1 = testQuery(
   [{ id: "hi" }],
   {
     query: "select * from c where 1"
@@ -60,7 +59,7 @@ exports.conditionNotStrictTrue1 = testQuery(
   []
 );
 
-exports.conditionNotStrictTrue2 = testQuery(
+export const conditionNotStrictTrue2 = testQuery(
   [{ id: "hi" }],
   {
     query: "select * from c where 1 and true"
@@ -68,7 +67,7 @@ exports.conditionNotStrictTrue2 = testQuery(
   []
 );
 
-exports.conditionNotStrictTrue3 = testQuery(
+export const conditionNotStrictTrue3 = testQuery(
   [{ id: "hi" }],
   {
     query: "select * from c where 1 OR 'ok'"
@@ -76,7 +75,7 @@ exports.conditionNotStrictTrue3 = testQuery(
   []
 );
 
-exports.equal = testQuery(
+export const equal = testQuery(
   null,
   {
     query: `
@@ -119,7 +118,7 @@ exports.equal = testQuery(
   ]
 );
 
-exports.equalUndefined = testQuery(
+export const equalUndefined = testQuery(
   [{ id: "hi" }],
   {
     query: `
@@ -140,7 +139,7 @@ exports.equalUndefined = testQuery(
   [{}]
 );
 
-exports.notEqualUndefined = testQuery(
+export const notEqualUndefined = testQuery(
   [{ id: "hi" }],
   {
     query: `
@@ -183,7 +182,7 @@ exports.notEqualUndefined = testQuery(
   );
 });
 
-exports.logicalOrOperator = testQuery(
+export const logicalOrOperator = testQuery(
   null,
   {
     query: `
@@ -210,7 +209,7 @@ exports.logicalOrOperator = testQuery(
   ]
 );
 
-exports.logicalOrOperatorUndefined = testQuery(
+export const logicalOrOperatorUndefined = testQuery(
   null,
   {
     query: `
@@ -232,7 +231,7 @@ exports.logicalOrOperatorUndefined = testQuery(
   [{}]
 );
 
-exports.logicalAndOperator = testQuery(
+export const logicalAndOperator = testQuery(
   null,
   {
     query: `
@@ -259,7 +258,7 @@ exports.logicalAndOperator = testQuery(
   ]
 );
 
-exports.logicalAndOperatorUndefined = testQuery(
+export const logicalAndOperatorUndefined = testQuery(
   null,
   {
     query: `
@@ -281,7 +280,7 @@ exports.logicalAndOperatorUndefined = testQuery(
   [{}]
 );
 
-exports.logicalNotOperatorUndefined = testQuery(
+export const logicalNotOperatorUndefined = testQuery(
   null,
   {
     query: `
@@ -297,7 +296,7 @@ exports.logicalNotOperatorUndefined = testQuery(
   [{}]
 );
 
-exports.ternaryOperator = testQuery(
+export const ternaryOperator = testQuery(
   null,
   {
     query: `
@@ -322,7 +321,7 @@ exports.ternaryOperator = testQuery(
   ]
 );
 
-exports.concatenateOperator = testQuery(
+export const concatenateOperator = testQuery(
   null,
   {
     query: `
@@ -387,7 +386,7 @@ exports.concatenateOperator = testQuery(
   );
 });
 
-exports.functionCall = testQuery(
+export const functionCall = testQuery(
   null,
   {
     query: "select ABS(-1), abs(-1), abs (-1), abs ( -1 )"
@@ -402,7 +401,7 @@ exports.functionCall = testQuery(
   ]
 );
 
-exports.arrayContains = testQuery(
+export const arrayContains = testQuery(
   null,
   {
     query: `
@@ -423,7 +422,7 @@ exports.arrayContains = testQuery(
   ]
 );
 
-exports.orderTypes = testQuery(
+export const orderTypes = testQuery(
   [
     10,
     1,
@@ -472,7 +471,7 @@ exports.orderTypes = testQuery(
   ]
 );
 
-exports.aggregationWithUndefined = testQuery(
+export const aggregationWithUndefined = testQuery(
   [10, 1, 0, 0.5, 2, undefined].map((v, i) => ({ id: i, v })),
   {
     query: `
@@ -495,7 +494,7 @@ exports.aggregationWithUndefined = testQuery(
   ]
 );
 
-exports.aggregationWithNull = testQuery(
+export const aggregationWithNull = testQuery(
   [10, 1, 0, 0.5, 2, null].map((v, i) => ({ id: i, v })),
   {
     query: `
@@ -516,7 +515,7 @@ exports.aggregationWithNull = testQuery(
   ]
 );
 
-exports.aggregationWithBoolean = testQuery(
+export const aggregationWithBoolean = testQuery(
   [10, 1, 0, 0.5, 2, true, false].map((v, i) => ({ id: i, v })),
   {
     query: `
@@ -537,7 +536,7 @@ exports.aggregationWithBoolean = testQuery(
   ]
 );
 
-exports.aggregationWithString = testQuery(
+export const aggregationWithString = testQuery(
   [10, 1, 0, 0.5, 2, "01", "1", "10", "2", "A", "B", "a", "b"].map((v, i) => ({
     id: i,
     v
@@ -561,7 +560,7 @@ exports.aggregationWithString = testQuery(
   ]
 );
 
-exports.aggregationWithArrayAndObject = testQuery(
+export const aggregationWithArrayAndObject = testQuery(
   [10, 1, 0, 0.5, 2, [], {}].map((v, i) => ({
     id: i,
     v
@@ -584,7 +583,7 @@ exports.aggregationWithArrayAndObject = testQuery(
   ]
 );
 
-exports.aggregationEmpty = testQuery(
+export const aggregationEmpty = testQuery(
   [],
   {
     query: `
@@ -603,4 +602,13 @@ exports.aggregationEmpty = testQuery(
       $2: 0
     }
   ]
+);
+
+export const functionWithParameters = testQuery(
+  [{ id: "foo", name: "foo" }, { id: "bar", name: "bar" }],
+  {
+    query: "select * from c where ARRAY_CONTAINS(@names, c.name)",
+    parameters: [{ name: "@names", value: ["foo"] }]
+  },
+  [{ id: "foo", name: "foo" }]
 );

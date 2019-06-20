@@ -1,6 +1,4 @@
-// @flow
-
-function conditionKeyNodes(node: Object) {
+function conditionKeyNodes(node: { [x: string]: any }): any[] {
   if (node.type === "scalar_binary_expression") {
     const { left, right } = node;
     if (node.operator === "=") {
@@ -20,14 +18,19 @@ function conditionKeyNodes(node: Object) {
   return [];
 }
 
-function toPartitionKey(node: Object) {
+function toPartitionKey(node: { [x: string]: any }): string | null {
   if (node.type === "scalar_member_expression") {
     return `${toPartitionKey(node.object) || ""}/${node.property.name}`;
   }
   return null;
 }
 
-module.exports = function containsPartitionKeys(ast: Object, paths: string[]) {
+export default function containsPartitionKeys(
+  ast: {
+    [x: string]: any;
+  },
+  paths: string[]
+) {
   if (!paths.length) return true;
   if (!ast.where) return false;
 
@@ -35,4 +38,4 @@ module.exports = function containsPartitionKeys(ast: Object, paths: string[]) {
   const nodes = conditionKeyNodes(condition);
   const keys = nodes.map(n => new Set(n.map(toPartitionKey)));
   return keys.every(k => paths.every(p => k.has(p)));
-};
+}

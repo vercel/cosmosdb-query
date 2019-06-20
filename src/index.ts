@@ -1,18 +1,19 @@
-// @flow
 /* eslint-disable no-underscore-dangle */
-const { default: generate } = require("@babel/generator");
-const containsPartitionKeys = require("./contains-partition-keys");
-const execute = require("./executor");
-// $FlowFixMe
-const { parse } = require("./parser"); // eslint-disable-line import/no-unresolved
-const transform = require("./transformer");
+import generate from "@babel/generator";
+import containsPartitionKeys from "./contains-partition-keys";
+import execute from "./executor";
+// @ts-ignore
+import { parse } from "./parser"; // eslint-disable-line import/no-unresolved
+import transform from "./transformer";
 
 class Query {
   _query: string;
 
-  _code: ?string;
+  _code: string | undefined | null;
 
-  ast: Object;
+  ast: {
+    [x: string]: any;
+  };
 
   constructor(query: string) {
     this._query = query;
@@ -35,8 +36,13 @@ class Query {
       parameters,
       udf
     }: {
-      parameters?: { name: string, value: any }[],
-      udf?: Object
+      parameters?: {
+        name: string;
+        value: any;
+      }[];
+      udf?: {
+        [x: string]: any;
+      };
     } = {}
   ) {
     const { code } = this;
@@ -52,4 +58,4 @@ class Query {
   }
 }
 
-module.exports = (query: string) => new Query(query);
+export default (query: string) => new Query(query);

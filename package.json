@@ -13,7 +13,7 @@
     "format-staged": "git diff --cached --name-only '*.ts' | xargs prettier --list-different",
     "lint": "eslint --ignore-pattern '*.pegjs' '{src,test}/**/*'",
     "lint-staged": "git diff --cached --name-only '*.ts' | xargs eslint",
-    "prepublish": "yarn build",
+    "prepublishOnly": "yarn build",
     "test": "yarn build && best -I 'test/*.ts' -r ts-node/register"
   },
   "dependencies": {

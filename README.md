@@ -2,19 +2,21 @@
 
 ![CircleCI](https://circleci.com/gh/zeit/cosmosdb-query.svg?style=svg&circle-token=9e222857e204b02378b95ed119a319c0e17223d2)
 
+A SQL parser and executer for Cosmos DB.
+
 ```js
-const query = require("@zeit/cosmosdb-query")
+const { default: query } = require("@zeit/cosmosdb-query");
 
 const collection = [
   { id: "foo" },
   { id: "bar" }
-]
+];
 
 const docs = query("SELECT * FROM c WHERE c.id = @id")
   .exec(collection, {
     parameters: [{ name: "@id", value: "foo" }]
-  })
-console.log(docs) // [ { id: "foo" } ]
+  });
+console.log(docs); // [ { id: "foo" } ]
 ```
 
 ### query(sql)
@@ -46,7 +48,7 @@ query(`SELECT VALUE udf.REGEX_MATCH("foobar", ".*bar")`).exec(null, {
       return input.match(pattern) !== null
     }
   }
-})
+});
 ```
 
 ### q.containsPartitionKeys(keys)
@@ -58,9 +60,9 @@ query(`SELECT VALUE udf.REGEX_MATCH("foobar", ".*bar")`).exec(null, {
 Determines whether query may contain partition keys.
 
 ```js
-const q = query("SELECT * FROM c WHERE c.id = 1")
+const q = query("SELECT * FROM c WHERE c.id = 1");
 if (!q.containsPartitionKeys(["/key"])) {
-  throw new Error("query doesn't contain partition keys")
+  throw new Error("query doesn't contain partition keys");
 }
 ```
 
@@ -71,6 +73,6 @@ if (!q.containsPartitionKeys(["/key"])) {
 The AST object of query.
 
 
-## TODO
+## Supported queries
 
-- Support spatial functions
+All queries are supported except spatial functions

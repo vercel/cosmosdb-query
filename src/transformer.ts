@@ -821,6 +821,12 @@ const definitions: { [key: string]: Function } = {
   },
 
   sort_specification(ctx: Context, { expressions }: { expressions: any[] }) {
+    if (expressions.length > 1) {
+      throw new Error(
+        "Multiple order-by items are not supported. Please specify a single order-by items."
+      );
+    }
+
     return callHelperNode(
       "sort",
       ctx.ast,

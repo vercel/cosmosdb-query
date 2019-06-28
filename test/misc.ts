@@ -489,7 +489,8 @@ export const aggregationWithUndefined = testQuery(
       $1: 5,
       $2: 13.5,
       $3: 2.7,
-      $4: 10
+      $4: 10,
+      $5: 0
     }
   ]
 );
@@ -510,7 +511,8 @@ export const aggregationWithNull = testQuery(
   [
     {
       $1: 6,
-      $4: 10
+      $4: 10,
+      $5: null
     }
   ]
 );
@@ -531,7 +533,8 @@ export const aggregationWithBoolean = testQuery(
   [
     {
       $1: 7,
-      $4: 10
+      $4: 10,
+      $5: false
     }
   ]
 );
@@ -555,7 +558,8 @@ export const aggregationWithString = testQuery(
   [
     {
       $1: 13,
-      $4: "b"
+      $4: "b",
+      $5: 0
     }
   ]
 );

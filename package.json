@@ -1,9 +1,11 @@
 {
   "name": "@zeit/cosmosdb-query",
   "version": "0.2.0",
-  "license": "UNLICENSED",
+  "description": "A SQL parser and executer for Cosmos DB",
+  "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.js",
+  "repository": "github:zeit/cosmosdb-query",
   "files": [
     "lib"
   ],

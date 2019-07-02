@@ -5,16 +5,16 @@ A SQL parser and executer for Cosmos DB.
 ```js
 const { default: query } = require("@zeit/cosmosdb-query");
 
-const collection = [
+const items = [
   { id: "foo" },
   { id: "bar" }
 ];
 
-const docs = query("SELECT * FROM c WHERE c.id = @id")
-  .exec(collection, {
+const { result } = query("SELECT * FROM c WHERE c.id = @id")
+  .exec(items, {
     parameters: [{ name: "@id", value: "foo" }]
   });
-console.log(docs); // [ { id: "foo" } ]
+console.log(result); // [ { id: "foo" } ]
 ```
 
 ### query(sql)
@@ -28,25 +28,46 @@ const q = query("SELECT * FROM c")
 
 ## Class: Query
 
-### q.exec(collection[, options])
+### q.exec(items[, options])
 
-- `collection` &lt;Object[]> | &lt;null>
+- `items` &lt;Object[]> | &lt;null>
 - `options` &lt;Object>
   - `parameters` &lt;Object[]> The parameters to pass to query
   - `udf` &lt;Object>
-- Returns: &lt;Object[]>
+  - `maxItemCount` &lt;number> The number of items to return at a time
+  - `continuation` &lt;Object> Continuation token
+- Returns: &lt;Object>
+  - `result` &lt;Object[]> Result documents
+  - `continuation` &lt;Object> Continuation token for subsequent calls
 
 
-Executes query for `collection`.
+Executes a query for `items`.
 
 ```js
-query(`SELECT VALUE udf.REGEX_MATCH("foobar", ".*bar")`).exec(null, {
+query(`SELECT VALUE udf.REGEX_MATCH("foobar", ".*bar")`).exec([], {
   udf: {
     REGEX_MATCH(input, pattern) {
       return input.match(pattern) !== null
     }
   }
 });
+```
+
+When the `maxItemCount` and/or `continuation` options are used,
+all itesms have to contain the `_rid` field with unique values.
+
+```js
+const items = [
+  { _rid: "a", value: 1 },
+  { _rid: "b", value: 2 },
+  { _rid: "c", value: 3 }
+];
+const q = query(`SELECT * FROM c`);
+const { result, continuation } = q.exec(items, { maxItemCount: 2 });
+console.log(result); // [ { _rid: "a", value: 1 }, { _rid: "b", value: 2 } ]
+
+const { result: result2 } = q.exec(items, { maxItemCount: 2, continuation });
+console.log(result2); // [ { _rid: "c", value: 3 } ]
 ```
 
 ### q.containsPartitionKeys(keys)

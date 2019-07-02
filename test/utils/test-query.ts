@@ -39,6 +39,6 @@ export default (
     return;
   }
 
-  const docs = query(params.query).exec(collection, opts);
-  assert.deepStrictEqual(docs, expected);
+  const { result } = query(params.query).exec(collection, opts);
+  assert.deepStrictEqual(result, expected);
 };

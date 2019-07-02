@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "license": "UNLICENSED",
   "main": "lib/index.js",
+  "types": "lib/index.d.js",
   "files": [
     "lib"
   ],
@@ -48,10 +49,21 @@
     "parserOptions": {
       "ecmaVersion": 2018
     },
+    "rules": {
+      "no-underscore-dangle": [
+        "error",
+        {
+          "allow": ["_rid"]
+        }
+      ]
+    },
     "settings": {
       "import/resolver": {
         "node": {
-          "extensions": [".js", ".ts"]
+          "extensions": [
+            ".js",
+            ".ts"
+          ]
         }
       }
     }

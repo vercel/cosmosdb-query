@@ -5,6 +5,7 @@ type Context = {
   ast?: any;
   document?: any;
   aggregation?: boolean;
+  orderBy?: any;
 };
 
 function transform(ctx: Context, node: { [x: string]: any }) {
@@ -80,6 +81,49 @@ function callHelperNode(name: string, ...args: any[]) {
       }
     },
     arguments: args
+  };
+}
+
+function resultNode(result: any, continuation?: any) {
+  return {
+    type: "ObjectExpression",
+    properties: [
+      {
+        type: "ObjectProperty",
+        computed: false,
+        shorthand: false,
+        kind: "init",
+        key: {
+          type: "Identifier",
+          name: "result"
+        },
+        value: callHelperNode("stripUndefined", result)
+      },
+      {
+        type: "ObjectProperty",
+        computed: false,
+        shorthand: false,
+        kind: "init",
+        key: {
+          type: "Identifier",
+          name: "continuation"
+        },
+        value: continuation || { type: "NumericLiteral" }
+      }
+    ]
+  };
+}
+
+function ridPathNode(ctx: Context) {
+  return {
+    type: "ArrayExpression",
+    elements: [
+      {
+        type: "StringLiteral",
+        value: ctx.document.properties[0].key.name
+      },
+      { type: "StringLiteral", value: "_rid" }
+    ]
   };
 }
 
@@ -688,6 +732,9 @@ const definitions: { [key: string]: Function } = {
 
     if (orderBy) {
       ctx.ast = transform(ctx, orderBy);
+    } else if (ctx.document) {
+      // try sort by `_rid` when `FROM` is specified
+      ctx.ast = callHelperNode("sort", ctx.ast, ridPathNode(ctx));
     }
 
     if (top) {
@@ -729,13 +776,29 @@ const definitions: { [key: string]: Function } = {
           type: "Identifier",
           name: "$p"
         },
+        {
+          type: "Identifier",
+          name: "$maxItemCount"
+        },
+        {
+          type: "Identifier",
+          name: "$continuation"
+        },
         // intermediate cache
         {
           type: "Identifier",
           name: "$_"
         }
       ],
-      body: callHelperNode("stripUndefined", ctx.ast)
+      body: {
+        type: "BlockStatement",
+        body: [
+          {
+            type: "ReturnStatement",
+            argument: ctx.ast
+          }
+        ]
+      }
     };
   },
 
@@ -747,38 +810,24 @@ const definitions: { [key: string]: Function } = {
       value
     }: { "*": boolean; properties?: { properties: any[] }; value: any }
   ) {
-    if (all) {
-      if (ctx.document.properties > 1) {
-        throw new Error("'SELECT *' is only valid with a single input set.");
-      }
-
-      return {
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: ctx.ast,
-          property: {
-            type: "Identifier",
-            name: "map"
-          }
-        },
-        arguments: [
-          {
-            type: "ArrowFunctionExpression",
-            params: [ctx.document],
-            body: ctx.document.properties[0]
-          }
-        ]
-      };
+    if (properties) {
+      ctx.aggregation = properties.properties.some(({ property }) =>
+        isAggregateFunction(property)
+      );
+    } else {
+      ctx.aggregation = value ? isAggregateFunction(value) : false;
     }
 
-    ctx.aggregation = properties
-      ? properties.properties.some(({ property }) =>
-          isAggregateFunction(property)
-        )
-      : isAggregateFunction(value);
     if (ctx.aggregation) {
-      // `($ = $c.filter(), [{ $1: COUNT($.map(c => c.id)), $2: ... }])`
+      // ```
+      // (
+      //   $_ = $c.filter(...),
+      //   {
+      //     result: $h.stripUndefined([{ $1: COUNT($_.map(c => c.id)), $2: ... }]),
+      //     continuation: null
+      //   }
+      // )
+      // ```
       return {
         type: "SequenceExpression",
         expressions: [
@@ -792,30 +841,115 @@ const definitions: { [key: string]: Function } = {
             operator: "=",
             right: ctx.ast
           },
-          {
+          resultNode({
             type: "ArrayExpression",
-            elements: [transform(ctx, properties || value)]
-          }
+            elements: [
+              callHelperNode(
+                "stripUndefined",
+                transform(ctx, properties || value)
+              )
+            ]
+          })
         ]
       };
     }
 
+    if (all) {
+      if (!ctx.document) {
+        throw new SyntaxError(
+          "'SELECT *' is not valid if FROM clause is omitted."
+        );
+      }
+      if (ctx.document.properties.length > 1) {
+        throw new SyntaxError(
+          "'SELECT *' is only valid with a single input set."
+        );
+      }
+    }
+
+    if (!ctx.document) {
+      return resultNode({
+        type: "CallExpression",
+        callee: {
+          type: "MemberExpression",
+          object: ctx.ast,
+          property: {
+            type: "Identifier",
+            name: "map"
+          }
+        },
+        arguments: [
+          {
+            type: "ArrowFunctionExpression",
+            params: [],
+            body: transform(ctx, properties || value)
+          }
+        ]
+      });
+    }
+
     return {
-      type: "CallExpression",
-      callee: {
-        type: "MemberExpression",
-        object: ctx.ast,
-        property: {
-          type: "Identifier",
-          name: "map"
-        }
-      },
-      arguments: [
+      type: "SequenceExpression",
+      expressions: [
         {
-          type: "ArrowFunctionExpression",
-          params: ctx.document ? [ctx.document] : [],
-          body: transform(ctx, properties || value)
-        }
+          type: "AssignmentExpression",
+          left: {
+            type: "Identifier",
+            name: "$_"
+          },
+          operator: "=",
+          right: callHelperNode(
+            "paginate",
+            ctx.ast,
+            { type: "Identifier", name: "$maxItemCount" },
+            { type: "Identifier", name: "$continuation" },
+            ridPathNode(ctx),
+            ctx.orderBy
+          )
+        },
+        resultNode(
+          {
+            type: "CallExpression",
+            callee: {
+              type: "MemberExpression",
+              object: {
+                type: "MemberExpression",
+                object: {
+                  type: "Identifier",
+                  name: "$_"
+                },
+                property: {
+                  type: "Identifier",
+                  name: "result"
+                }
+              },
+              property: {
+                type: "Identifier",
+                name: "map"
+              }
+            },
+            arguments: [
+              {
+                type: "ArrowFunctionExpression",
+                params: [ctx.document],
+                body: all
+                  ? ctx.document.properties[0]
+                  : transform(ctx, properties || value)
+              }
+            ]
+          },
+          {
+            type: "MemberExpression",
+            object: {
+              type: "Identifier",
+              name: "$_"
+            },
+            property: {
+              type: "Identifier",
+              name: "continuation"
+            }
+          }
+        )
       ]
     };
   },
@@ -827,11 +961,9 @@ const definitions: { [key: string]: Function } = {
       );
     }
 
-    return callHelperNode(
-      "sort",
-      ctx.ast,
-      ...expressions.map(e => transform(ctx, e))
-    );
+    ctx.orderBy = transform(ctx, expressions[0]);
+
+    return callHelperNode("sort", ctx.ast, ridPathNode(ctx), ctx.orderBy);
   },
 
   sort_expression(

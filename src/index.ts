@@ -34,7 +34,9 @@ class Query {
     coll: {}[],
     {
       parameters,
-      udf
+      udf,
+      maxItemCount,
+      continuation
     }: {
       parameters?: {
         name: string;
@@ -43,6 +45,10 @@ class Query {
       udf?: {
         [x: string]: any;
       };
+      maxItemCount?: number;
+      continuation?: {
+        token: string;
+      };
     } = {}
   ) {
     const { code } = this;
@@ -50,7 +56,7 @@ class Query {
       throw new Error("Missing code");
     }
 
-    return execute(coll, { code, parameters, udf });
+    return execute(coll, { code, parameters, udf, maxItemCount, continuation });
   }
 
   containsPartitionKeys(paths: string[]) {

@@ -7,7 +7,9 @@ export default (
   {
     code,
     parameters,
-    udf
+    udf,
+    maxItemCount,
+    continuation
   }: {
     code: string;
     parameters?: {
@@ -16,6 +18,10 @@ export default (
     }[];
     udf?: {
       [x: string]: any;
+    };
+    maxItemCount?: number;
+    continuation?: {
+      token: string;
     };
   }
 ) => {
@@ -33,6 +39,8 @@ export default (
     collection,
     helpers,
     udf,
-    params
+    params,
+    maxItemCount,
+    continuation
   );
 };

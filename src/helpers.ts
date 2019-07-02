@@ -1,3 +1,7 @@
+import * as continuationToken from "./continuation-token";
+
+const TYPE_ORDERS = new Set(["boolean", "null", "string", "number"]);
+
 const typeOf = (v: any) => {
   const t = typeof v;
   if (t !== "object") return t;
@@ -30,14 +34,32 @@ const deepEqual = (a: any, b: any): boolean => {
   return a === b;
 };
 
-const TYPE_ORDERS = new Set(["boolean", "null", "string", "number"]);
-
 const prop = (
   obj: {
     [x: string]: any;
   },
-  keys: string[]
-) => keys.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
+  path: string[]
+) => path.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
+
+const comparator = (a: any, b: any) => {
+  if (a === b) return 0;
+
+  const aType = typeOf(a);
+  const bType = typeOf(b);
+
+  if (aType === bType) {
+    if (!TYPE_ORDERS.has(aType)) return 0;
+    return a < b ? -1 : 1;
+  }
+
+  const typeOrders = [...TYPE_ORDERS];
+  for (let i = 0; i < typeOrders.length; i += 1) {
+    if (aType === typeOrders[i]) return -1;
+    if (bType === typeOrders[i]) return 1;
+  }
+
+  return 0;
+};
 
 export const stripUndefined = (obj: any): any => {
   if (Array.isArray(obj)) {
@@ -183,12 +205,10 @@ export const sort = (
   collection: {
     [x: string]: any;
   }[],
+  ridPath: string[],
   ...orders: [string[], boolean][]
 ) => {
-  if (
-    !orders.length ||
-    orders.some(([o]) => !Array.isArray(o) || o.length < 2)
-  ) {
+  if (orders.some(([o]) => !Array.isArray(o) || o.length < 2)) {
     throw new Error(
       "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
     );
@@ -196,42 +216,20 @@ export const sort = (
 
   const sorted = collection.slice().sort((a, b) => {
     for (let i = 0, l = orders.length; i < l; i += 1) {
-      const [keys, desc] = orders[i];
-      const aValue = prop(a, keys);
-      const bValue = prop(b, keys);
-      const aType = typeOf(aValue);
-      const bType = typeOf(bValue);
-
-      let r = 0;
-      if (aType === bType) {
-        if (TYPE_ORDERS.has(aType)) {
-          if (aType === "string") {
-            if (aValue < bValue) {
-              r = -1;
-            } else if (aValue > bValue) {
-              r = 1;
-            }
-          } else {
-            r = aValue - bValue;
-          }
-        }
-      } else {
-        [...TYPE_ORDERS].some(t => {
-          if (aType === t) {
-            r = -1;
-            return true;
-          }
-          if (bType === t) {
-            r = 1;
-            return true;
-          }
-          return false;
-        });
-      }
+      const [path, desc] = orders[i];
+      const aValue = prop(a, path);
+      const bValue = prop(b, path);
+      const r = comparator(aValue, bValue);
       if (r !== 0) return desc ? -r : r;
     }
-    return 0;
+
+    // sort by `_rid`
+    const rid1 = prop(a, ridPath);
+    const rid2 = prop(b, ridPath);
+    return comparator(rid1, rid2);
   });
+
+  if (!orders.length) return sorted;
 
   // find the index of the first invalid item (undefined, object or array)
   let idx;
@@ -239,8 +237,8 @@ export const sort = (
     const doc = sorted[i];
 
     for (let j = 0, l = orders.length; j < l; j += 1) {
-      const [keys] = orders[j];
-      const value = prop(doc, keys);
+      const [path] = orders[j];
+      const value = prop(doc, path);
       const t = typeOf(value);
       if (TYPE_ORDERS.has(t)) {
         idx = i !== sorted.length - 1 ? i + 1 : -1;
@@ -252,4 +250,86 @@ export const sort = (
   }
 
   return idx != null && idx >= 0 ? sorted.slice(0, idx) : sorted;
+};
+
+export const paginate = (
+  collection: { [x: string]: any }[],
+  maxItemCount?: number,
+  continuation?: { token: string },
+  ridPath?: string[],
+  orderBy?: [string[], boolean]
+) => {
+  let result = collection;
+  let token: continuationToken.Token;
+  let offset = 0;
+
+  if (continuation) {
+    token = continuationToken.decode(continuation.token);
+
+    let src = 0;
+    let i = result.findIndex(d => {
+      if (typeof token.RTD !== "undefined" && orderBy) {
+        const rtd = prop(d, orderBy[0]);
+        const r = comparator(rtd, token.RTD) * (orderBy[1] ? -1 : 1);
+        if (r < 0) return false;
+        if (r > 0) return true;
+      }
+
+      const rid = prop(d, ridPath);
+      if (!rid) {
+        throw new Error(
+          "The _rid field is required on items for the continuation option."
+        );
+      }
+      if (comparator(rid, token.RID) < 0) return false;
+      if (!token.SRC || rid !== token.RID) return true;
+      if (src === token.SRC) return true;
+      src += 1;
+      return false;
+    });
+
+    i = i >= 0 ? i : result.length;
+    result = result.slice(i);
+    offset += i;
+  }
+
+  let nextContinuation: {
+    token: string;
+    range: { min: string; max: string };
+  } | null = null;
+  if (maxItemCount > 0) {
+    if (result.length > maxItemCount) {
+      const item = result[maxItemCount];
+      const RID = prop(item, ridPath);
+      if (!RID) {
+        throw new Error(
+          "The _rid field is required on items for the maxItemCount option."
+        );
+      }
+      const RT = (token ? token.RT : 0) + 1;
+      const TRC = (token ? token.TRC : 0) + maxItemCount;
+      const RTD = orderBy ? prop(item, orderBy[0]) : undefined;
+
+      // calculate "SRC" which is the offset of items with the same `_rid`;
+      let j = offset + maxItemCount - 1;
+      for (; j >= 0; j -= 1) {
+        if (prop(collection[j], ridPath) !== RID) break;
+      }
+      const SRC = offset + maxItemCount - j - 1;
+
+      const nextToken = continuationToken.encode({ RID, RT, SRC, TRC, RTD });
+
+      nextContinuation = {
+        token: nextToken,
+        range: { min: "", max: "FF" }
+      };
+    }
+
+    result = result.slice(0, maxItemCount);
+  }
+
+  return {
+    result,
+    continuation: nextContinuation
+  };
 };

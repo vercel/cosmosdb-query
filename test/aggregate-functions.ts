@@ -81,3 +81,15 @@ export const minStringAndNumber = testQuery(
   { query: "SELECT VALUE MIN(r.key) FROM r" },
   [123]
 );
+
+export const sum = testQuery(
+  [{ key: 1 }, { key: 2 }, { key: 3 }],
+  { query: "SELECT VALUE SUM(r.key) FROM r" },
+  [6]
+);
+
+export const sumNonNumber = testQuery(
+  [{ key: 1 }, { key: 2 }, { key: "3" }],
+  { query: "SELECT VALUE SUM(r.key) FROM r" },
+  []
+);

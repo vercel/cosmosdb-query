@@ -1,7 +1,7 @@
 export const SUM = (a: number[]) =>
   a.reduce((s, n) => {
     if (typeof n === "undefined") return s;
-    return typeof n === "number" ? s + n : undefined;
+    return typeof s === "number" && typeof n === "number" ? s + n : undefined;
   }, 0);
 
 export const AVG = (a: number[]) => {

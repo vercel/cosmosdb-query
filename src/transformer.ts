@@ -116,14 +116,31 @@ function resultNode(result: any, continuation?: any) {
 
 function ridPathNode(ctx: Context) {
   return {
-    type: "ArrayExpression",
-    elements: [
+    type: "ArrowFunctionExpression",
+    params: [
       {
-        type: "StringLiteral",
-        value: ctx.document.properties[0].key.name
+        type: "Identifier",
+        name: "$"
+      }
+    ],
+    body: {
+      type: "MemberExpression",
+      object: {
+        type: "MemberExpression",
+        object: {
+          type: "Identifier",
+          name: "$"
+        },
+        property: {
+          type: "Identifier",
+          name: ctx.document.properties[0].key.name
+        }
       },
-      { type: "StringLiteral", value: "_rid" }
-    ]
+      property: {
+        type: "Identifier",
+        name: "_rid"
+      }
+    }
   };
 }
 
@@ -657,12 +674,42 @@ const definitions: { [key: string]: Function } = {
       computed
     }: { object: any; property: any; computed: boolean }
   ) {
-    return {
+    const objectNode = transform(ctx, object);
+    const memberExpressionNode = {
       type: "MemberExpression",
-      object: transform(ctx, object),
+      object: objectNode,
       property: transform(ctx, property),
       computed
     };
+
+    return object.type === "scalar_member_expression"
+      ? {
+          type: "ConditionalExpression",
+          test: {
+            type: "LogicalExpression",
+            left: {
+              type: "BinaryExpression",
+              left: {
+                type: "UnaryExpression",
+                operator: "typeof",
+                argument: objectNode
+              },
+              operator: "===",
+              right: {
+                type: "StringLiteral",
+                value: "object"
+              }
+            },
+            operator: "&&",
+            right: objectNode
+          },
+          consequent: memberExpressionNode,
+          alternate: {
+            type: "Identifier",
+            name: "undefined"
+          }
+        }
+      : memberExpressionNode;
   },
 
   scalar_object_expression(
@@ -970,33 +1017,46 @@ const definitions: { [key: string]: Function } = {
     ctx: Context,
     { expression, order }: { expression: any; order: string }
   ) {
+    if (expression.type !== "scalar_member_expression") {
+      throw new Error(
+        "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
+      );
+    }
+
     const node = transform(ctx, expression);
 
-    const elements: any[] = [];
-    if (node.type === "MemberExpression") {
-      traverse({ type: "Program", body: [node] } as any, {
-        MemberExpression(path: any) {
-          elements.unshift({
-            type: "StringLiteral",
-            value: path.node.property.name
-          });
-
-          if (path.node.object.type === "Identifier") {
-            elements.unshift({
-              type: "StringLiteral",
-              value: path.node.object.name
-            });
-          }
+    traverse({ type: "Program", body: [node] } as any, {
+      MemberExpression(path: any) {
+        if (
+          path.node.object.type === "Identifier" &&
+          path.node.object.name !== "$"
+        ) {
+          // eslint-disable-next-line no-param-reassign
+          path.node.object = {
+            type: "MemberExpression",
+            object: {
+              type: "Identifier",
+              name: "$"
+            },
+            property: path.node.object
+          };
+          path.skip();
         }
-      });
-    }
+      }
+    });
 
     return {
       type: "ArrayExpression",
       elements: [
         {
-          type: "ArrayExpression",
-          elements
+          type: "ArrowFunctionExpression",
+          params: [
+            {
+              type: "Identifier",
+              name: "$"
+            }
+          ],
+          body: node
         },
         {
           type: "BooleanLiteral",

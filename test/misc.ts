@@ -616,3 +616,84 @@ export const functionWithParameters = testQuery(
   },
   [{ id: "foo", name: "foo" }]
 );
+
+export const withEmptyNestedProperty = testQuery(
+  [
+    { id: "foo", child: { name: "foo" } },
+    { id: "bar", child: null },
+    { id: "baz" }
+  ],
+  {
+    query: "select * from c where c.child.name = @name",
+    parameters: [{ name: "@name", value: "foo" }]
+  },
+  [{ id: "foo", child: { name: "foo" } }]
+);
+
+export const selectWithEmptyNestedProperty = testQuery(
+  [
+    { id: "foo", child: { name: "foo" } },
+    { id: "bar", child: null },
+    { id: "baz" }
+  ],
+  {
+    query: "select c.child.name from c"
+  },
+  [{ name: "foo" }, {}, {}]
+);
+
+export const orderByWithEmptyNestedProperty = testQuery(
+  [
+    { id: "foo", child: { name: "foo" } },
+    { id: "bar", child: null },
+    { id: "baz" }
+  ],
+  {
+    query: "select * from c order by c.child.name",
+    parameters: [{ name: "@name", value: "foo" }]
+  },
+  [{ id: "foo", child: { name: "foo" } }]
+);
+
+export const deeplyNestedProperty = testQuery(
+  [
+    { id: "foo", child: { grandchild: { greatgrandchild: { name: "foo" } } } },
+    { id: "bar", child: { grandchild: null } }
+  ],
+  {
+    query:
+      "select * from c where c.child.grandchild.greatgrandchild.name = @name",
+    parameters: [{ name: "@name", value: "foo" }]
+  },
+  [{ id: "foo", child: { grandchild: { greatgrandchild: { name: "foo" } } } }]
+);
+
+export const conditionPropWithParameter = testQuery(
+  [
+    { id: "foo", name: "foo" },
+    { id: "bar", name: "bar" },
+    { id: "baz", name: "baz" }
+  ],
+  {
+    query: "select * from c where c[@prop] = 'foo'",
+    parameters: [{ name: "@prop", value: "name" }]
+  },
+  [{ id: "foo", name: "foo" }]
+);
+
+export const orderByWithParameter = testQuery(
+  [
+    { id: "foo", name: "foo" },
+    { id: "bar", name: "bar" },
+    { id: "baz", name: "baz" }
+  ],
+  {
+    query: "select * from c order by c[@prop]",
+    parameters: [{ name: "@prop", value: "name" }]
+  },
+  [
+    { id: "bar", name: "bar" },
+    { id: "baz", name: "baz" },
+    { id: "foo", name: "foo" }
+  ]
+);

@@ -34,13 +34,6 @@ const deepEqual = (a: any, b: any): boolean => {
   return a === b;
 };
 
-const prop = (
-  obj: {
-    [x: string]: any;
-  },
-  path: string[]
-) => path.reduce((o, k) => (typeof o !== "undefined" ? o[k] : o), obj);
-
 const comparator = (a: any, b: any) => {
   if (a === b) return 0;
 
@@ -205,27 +198,21 @@ export const sort = (
   collection: {
     [x: string]: any;
   }[],
-  ridPath: string[],
-  ...orders: [string[], boolean][]
+  getRid: (a: any) => any,
+  ...orders: [(a: any) => any, boolean][]
 ) => {
-  if (orders.some(([o]) => !Array.isArray(o) || o.length < 2)) {
-    throw new Error(
-      "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
-    );
-  }
-
   const sorted = collection.slice().sort((a, b) => {
     for (let i = 0, l = orders.length; i < l; i += 1) {
-      const [path, desc] = orders[i];
-      const aValue = prop(a, path);
-      const bValue = prop(b, path);
+      const [getValue, desc] = orders[i];
+      const aValue = getValue(a);
+      const bValue = getValue(b);
       const r = comparator(aValue, bValue);
       if (r !== 0) return desc ? -r : r;
     }
 
     // sort by `_rid`
-    const rid1 = prop(a, ridPath);
-    const rid2 = prop(b, ridPath);
+    const rid1 = getRid(a);
+    const rid2 = getRid(b);
     return comparator(rid1, rid2);
   });
 
@@ -237,8 +224,8 @@ export const sort = (
     const doc = sorted[i];
 
     for (let j = 0, l = orders.length; j < l; j += 1) {
-      const [path] = orders[j];
-      const value = prop(doc, path);
+      const [getValue] = orders[j];
+      const value = getValue(doc);
       const t = typeOf(value);
       if (TYPE_ORDERS.has(t)) {
         idx = i !== sorted.length - 1 ? i + 1 : -1;
@@ -256,8 +243,8 @@ export const paginate = (
   collection: { [x: string]: any }[],
   maxItemCount?: number,
   continuation?: { token: string },
-  ridPath?: string[],
-  orderBy?: [string[], boolean]
+  getRid?: (a: any) => any,
+  orderBy?: [(a: any) => any, boolean]
 ) => {
   let result = collection;
   let token: continuationToken.Token;
@@ -269,13 +256,13 @@ export const paginate = (
     let src = 0;
     let i = result.findIndex(d => {
       if (typeof token.RTD !== "undefined" && orderBy) {
-        const rtd = prop(d, orderBy[0]);
+        const rtd = orderBy[0](d);
         const r = comparator(rtd, token.RTD) * (orderBy[1] ? -1 : 1);
         if (r < 0) return false;
         if (r > 0) return true;
       }
 
-      const rid = prop(d, ridPath);
+      const rid = getRid(d);
       if (!rid) {
         throw new Error(
           "The _rid field is required on items for the continuation option."
@@ -300,7 +287,7 @@ export const paginate = (
   if (maxItemCount > 0) {
     if (result.length > maxItemCount) {
       const item = result[maxItemCount];
-      const RID = prop(item, ridPath);
+      const RID = getRid(item);
       if (!RID) {
         throw new Error(
           "The _rid field is required on items for the maxItemCount option."
@@ -308,12 +295,12 @@ export const paginate = (
       }
       const RT = (token ? token.RT : 0) + 1;
       const TRC = (token ? token.TRC : 0) + maxItemCount;
-      const RTD = orderBy ? prop(item, orderBy[0]) : undefined;
+      const RTD = orderBy ? orderBy[0](item) : undefined;
 
       // calculate "SRC" which is the offset of items with the same `_rid`;
       let j = offset + maxItemCount - 1;
       for (; j >= 0; j -= 1) {
-        if (prop(collection[j], ridPath) !== RID) break;
+        if (getRid(collection[j]) !== RID) break;
       }
       const SRC = offset + maxItemCount - j - 1;
 

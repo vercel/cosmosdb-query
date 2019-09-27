@@ -1,11 +1,12 @@
 import testQuery from "./utils/test-query";
+import { SyntaxError } from "../lib";
 
 export const functionWrongNumberOfArgument = testQuery(
   null,
   {
     query: "select ABS()"
   },
-  new Error("The ABS function requires 1 argument(s)")
+  new SyntaxError("The ABS function requires 1 argument(s)")
 );
 
 export const reserved = testQuery(
@@ -21,7 +22,7 @@ export const multipleOrderByItems = testQuery(
   {
     query: "select c.id from c order by c.a, c.b"
   },
-  new Error(
+  new SyntaxError(
     "Multiple order-by items are not supported. Please specify a single order-by items."
   )
 );

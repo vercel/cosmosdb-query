@@ -1,5 +1,7 @@
 import traverse from "@babel/traverse";
 import * as aggregateFunctions from "./aggregate-functions";
+// @ts-ignore
+import { SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
 
 type Context = {
   ast?: any;
@@ -1003,7 +1005,7 @@ const definitions: { [key: string]: Function } = {
 
   sort_specification(ctx: Context, { expressions }: { expressions: any[] }) {
     if (expressions.length > 1) {
-      throw new Error(
+      throw new SyntaxError(
         "Multiple order-by items are not supported. Please specify a single order-by items."
       );
     }
@@ -1018,7 +1020,7 @@ const definitions: { [key: string]: Function } = {
     { expression, order }: { expression: any; order: string }
   ) {
     if (expression.type !== "scalar_member_expression") {
-      throw new Error(
+      throw new SyntaxError(
         "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
       );
     }

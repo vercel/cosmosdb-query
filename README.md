@@ -91,6 +91,20 @@ if (!q.containsPartitionKeys(["/key"])) {
 
 The AST object of query.
 
+## Class: SyntaxError
+
+```js
+const { default: query, SyntaxError } = require("@zeit/cosmosdb-query");
+
+try {
+  query("INVALID SELECT").exec(items);
+} catch (err) {
+  if (err instanceof SyntaxError) {
+    console.error(err);
+  }
+  throw err;
+}
+```
 
 ## Supported queries
 

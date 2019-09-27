@@ -1,3 +1,6 @@
+// @ts-ignore
+import { SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
+
 const typeOf = (v: any) => {
   const t = typeof v;
   if (t !== "object") return t;
@@ -20,7 +23,7 @@ const def = (name: string, argTypes: any[], f: Function) => {
         ? a.length < requiredTypes.length
         : a.length !== requiredTypes.length
     ) {
-      throw new Error(
+      throw new SyntaxError(
         `The ${name} function requires ${isVariable ? "at least " : ""}${
           requiredTypes.length
         } argument(s)`

@@ -63,7 +63,7 @@ object_property_list
     }
 
 from_specification
-  = source:from_source joins:(_ join _ v:from_source { return v })*
+  = source:from_source joins:(_ join _ v:(from_source / "(" _ select_query _ ")") { return v })*
     {
       return {
         type: 'from_specification',

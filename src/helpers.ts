@@ -240,7 +240,7 @@ export const sort = (
 };
 
 export const paginate = (
-  collection: { [x: string]: any }[],
+  collection: [{ [x: string]: any }, { [x: string]: any }][],
   maxItemCount?: number,
   continuation?: { token: string },
   getRid?: (a: any) => any,
@@ -254,7 +254,7 @@ export const paginate = (
     token = continuationToken.decode(continuation.token);
 
     let src = 0;
-    let i = result.findIndex(d => {
+    let i = result.findIndex(([, d]) => {
       if (typeof token.RTD !== "undefined" && orderBy) {
         const rtd = orderBy[0](d);
         const r = comparator(rtd, token.RTD) * (orderBy[1] ? -1 : 1);
@@ -286,7 +286,7 @@ export const paginate = (
   } | null = null;
   if (maxItemCount > 0) {
     if (result.length > maxItemCount) {
-      const item = result[maxItemCount];
+      const [, item] = result[maxItemCount];
       const RID = getRid(item);
       if (!RID) {
         throw new Error(
@@ -300,7 +300,7 @@ export const paginate = (
       // calculate "SRC" which is the offset of items with the same `_rid`;
       let j = offset + maxItemCount - 1;
       for (; j >= 0; j -= 1) {
-        if (getRid(collection[j]) !== RID) break;
+        if (getRid(collection[j][1]) !== RID) break;
       }
       const SRC = offset + maxItemCount - j - 1;
 
@@ -316,7 +316,7 @@ export const paginate = (
   }
 
   return {
-    result,
+    result: stripUndefined(result.map(([r]) => r)),
     continuation: nextContinuation
   };
 };

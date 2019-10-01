@@ -17,7 +17,7 @@
     "lint": "eslint --ignore-pattern '*.pegjs' '{src,test}/**/*'",
     "lint-staged": "git diff --cached --name-only '*.ts' | xargs eslint",
     "prepublishOnly": "yarn build",
-    "test": "yarn build && best -I 'test/*.ts' -r ts-node/register"
+    "test": "yarn build && best -I 'test/*.ts' -r ts-node/register --verbose"
   },
   "dependencies": {
     "@babel/generator": "7.5.5",

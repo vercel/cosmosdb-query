@@ -7,7 +7,7 @@ export default (
   {
     code,
     parameters,
-    udf,
+    udf = {},
     maxItemCount,
     continuation
   }: {

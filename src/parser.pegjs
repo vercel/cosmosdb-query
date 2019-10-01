@@ -1,4 +1,4 @@
-// Reference: https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query-reference
+// Reference: https://docs.microsoft.com/en-us/azure/cosmos-db/sql-query-select
 
 {
   function buildBinaryExpression(head, tail) {
@@ -11,13 +11,21 @@
   }
 }
 
+sql = _ body:select_query _
+      {
+        return {
+          type: 'sql',
+          body
+        }
+      }
+
 select_query
   = select _
     top:(top _ v:top_specification { return v })? _
     select:select_specification _
     from:(from _ v:from_specification { return v })? _
     where:(where _ v:filter_condition { return v })? _
-    orderBy:(order _ by _ v:sort_specification { return v })? _
+    orderBy:(order _ by _ v:sort_specification { return v })?
     {
       return {
         type: 'select_query',
@@ -28,6 +36,10 @@ select_query
         orderBy
       }
     }
+
+select_subquery
+  = "(" _ subquery:select_query _ ")"
+    { return subquery }
 
 select_specification
   = '*'
@@ -63,7 +75,7 @@ object_property_list
     }
 
 from_specification
-  = source:from_source joins:(_ join _ v:(from_source / "(" _ select_query _ ")") { return v })*
+  = source:from_source joins:(_ join _ v:(from_source) { return v })*
     {
       return {
         type: 'from_specification',
@@ -94,6 +106,7 @@ from_source
 collection_expression
   = collection_member_expression
   / collection_primary_expression
+  / select_subquery
 
 filter_condition
   = condition:scalar_expression

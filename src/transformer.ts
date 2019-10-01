@@ -10,14 +10,14 @@ type Context = {
   orderBy?: any;
 };
 
-function transform(ctx: Context, node: { [x: string]: any }) {
+function transform(contexts: Context[], node: { [x: string]: any }) {
   // eslint-disable-next-line no-use-before-define
   const def = definitions[node.type];
   if (!def) {
     throw new Error(`Invalid type: ${node.type}`);
   }
 
-  return def(ctx, node);
+  return def(contexts, node);
 }
 
 function isAggregateFunction({
@@ -82,37 +82,7 @@ function callHelperNode(name: string, ...args: any[]) {
         name
       }
     },
-    arguments: args
-  };
-}
-
-function resultNode(result: any, continuation?: any) {
-  return {
-    type: "ObjectExpression",
-    properties: [
-      {
-        type: "ObjectProperty",
-        computed: false,
-        shorthand: false,
-        kind: "init",
-        key: {
-          type: "Identifier",
-          name: "result"
-        },
-        value: callHelperNode("stripUndefined", result)
-      },
-      {
-        type: "ObjectProperty",
-        computed: false,
-        shorthand: false,
-        kind: "init",
-        key: {
-          type: "Identifier",
-          name: "continuation"
-        },
-        value: continuation || { type: "NumericLiteral" }
-      }
-    ]
+    arguments: args.filter(a => a)
   };
 }
 
@@ -146,18 +116,22 @@ function ridPathNode(ctx: Context) {
   };
 }
 
+function clone(o: any) {
+  return JSON.parse(JSON.stringify(o));
+}
+
 const definitions: { [key: string]: Function } = {
   array_constant(
-    ctx: Context,
+    contexts: Context[],
     { elements }: { elements: any[] }
   ): { type: string; elements: any[] } {
     return {
       type: "ArrayExpression",
-      elements: elements.map(v => transform(ctx, v))
+      elements: elements.map(v => transform(contexts, v))
     };
   },
 
-  boolean_constant(ctx: Context, { value }: { value: boolean }) {
+  boolean_constant(contexts: Context[], { value }: { value: boolean }) {
     return {
       type: "BooleanLiteral",
       value
@@ -165,14 +139,14 @@ const definitions: { [key: string]: Function } = {
   },
 
   collection_expression(
-    ctx: Context,
+    contexts: Context[],
     { expression }: { expression: any }
   ): any {
-    return transform(ctx, expression);
+    return transform(contexts, expression);
   },
 
   collection_member_expression(
-    ctx: Context,
+    contexts: Context[],
     {
       object,
       property,
@@ -181,13 +155,14 @@ const definitions: { [key: string]: Function } = {
   ) {
     return {
       type: "MemberExpression",
-      object: transform(ctx, object),
-      property: transform(ctx, property),
+      object: transform(contexts, object),
+      property: transform(contexts, property),
       computed
     };
   },
 
-  filter_condition(ctx: Context, { condition }: { condition: any }) {
+  filter_condition(contexts: Context[], { condition }: { condition: any }) {
+    const ctx = contexts[contexts.length - 1];
     return {
       type: "CallExpression",
       callee: {
@@ -202,21 +177,21 @@ const definitions: { [key: string]: Function } = {
         {
           type: "ArrowFunctionExpression",
           params: ctx.document ? [ctx.document] : [],
-          body: strictTrueNode(transform(ctx, condition))
+          body: strictTrueNode(transform(contexts, condition))
         }
       ]
     };
   },
 
   from_source(
-    ctx: Context,
+    contexts: Context[],
     { expression, alias }: { expression: any; alias?: any }
   ) {
-    return transform(ctx, alias || expression);
+    return transform(contexts, alias || expression);
   },
 
   from_specification(
-    ctx: Context,
+    contexts: Context[],
     {
       source,
       joins
@@ -225,11 +200,16 @@ const definitions: { [key: string]: Function } = {
       joins?: { expression: any; alias?: any; iteration?: boolean }[];
     }
   ) {
+    const ctx = contexts[contexts.length - 1];
     return [source, ...(joins || [])].reduce(
-      (object, { expression, alias, iteration }) => {
-        const exp = transform(ctx, expression);
-        const node = alias ? transform(ctx, alias) : exp;
-        const nameNode = node.property || node;
+      (object, { expression, alias, iteration }, i) => {
+        const exp = transform(contexts, expression);
+        const aliasNode = alias ? transform(contexts, alias) : null;
+        const node = aliasNode || exp;
+        const nameNode =
+          expression.type !== "select_query"
+            ? node.property || node
+            : aliasNode || { type: "Identifier", name: `$${i}` };
 
         if (!ctx.document) {
           if (exp.type !== "MemberExpression") {
@@ -263,8 +243,71 @@ const definitions: { [key: string]: Function } = {
           ]
         };
 
-        if (iteration) {
-          // e.g,
+        if (iteration || expression.type === "select_query") {
+          const arrayValue = iteration && expression.type === "select_query";
+          const mapProps = {
+            type: "CallExpression",
+            callee: {
+              type: "MemberExpression",
+              object: {
+                type: "LogicalExpression",
+                left: arrayValue
+                  ? {
+                      type: "MemberExpression",
+                      object: exp,
+                      property: {
+                        type: "NumericLiteral",
+                        value: 0
+                      }
+                    }
+                  : exp,
+                operator: "||",
+                right: {
+                  type: "ArrayExpression",
+                  elements: [] as any[]
+                }
+              },
+              property: {
+                type: "Identifier",
+                name: "map"
+              }
+            },
+            arguments: [
+              {
+                type: "ArrowFunctionExpression",
+                params: [nameNode],
+                body: {
+                  type: "ObjectExpression",
+                  properties: [
+                    ...(document.type === "ObjectPattern"
+                      ? document.properties
+                      : []),
+                    {
+                      type: "ObjectProperty",
+                      computed: false,
+                      key: nameNode,
+                      value: nameNode
+                    }
+                  ]
+                }
+              }
+            ]
+          };
+          if (!object) {
+            // e.g.
+            //   FROM c
+            //   JOIN (SELECT VALUE t FROM t IN c.tags WHERE t.name = 'foo')
+            //
+            // collection
+            //   .reduce(($, c) => [...$, { c }], [])
+            //   .reduce(($, { c }) => [
+            //     ...$,
+            //     ...(c.tag || []).map(t => ({ c, t })).filter(...).map(({ c, t }) => t)
+            //   ], [])
+            return mapProps;
+          }
+
+          // e.g.
           //   FROM Families f
           //   JOIN c IN f.children
           //   JOIN p IN c.pets
@@ -299,45 +342,7 @@ const definitions: { [key: string]: Function } = {
                     },
                     {
                       type: "SpreadElement",
-                      argument: {
-                        type: "CallExpression",
-                        callee: {
-                          type: "MemberExpression",
-                          object: {
-                            type: "LogicalExpression",
-                            left: exp,
-                            operator: "||",
-                            right: {
-                              type: "ArrayExpression",
-                              elements: []
-                            }
-                          },
-                          property: {
-                            type: "Identifier",
-                            name: "map"
-                          }
-                        },
-                        arguments: [
-                          {
-                            type: "ArrowFunctionExpression",
-                            params: [nameNode],
-                            body: {
-                              type: "ObjectExpression",
-                              properties: [
-                                ...(document.type === "ObjectPattern"
-                                  ? document.properties
-                                  : []),
-                                {
-                                  type: "ObjectProperty",
-                                  computed: false,
-                                  key: nameNode,
-                                  value: nameNode
-                                }
-                              ]
-                            }
-                          }
-                        ]
-                      }
+                      argument: mapProps
                     }
                   ]
                 }
@@ -418,11 +423,11 @@ const definitions: { [key: string]: Function } = {
           ]
         };
       },
-      ctx.ast
+      contexts.length === 1 ? ctx.ast : null
     );
   },
 
-  identifier(ctx: Context, { name }: { name: string }) {
+  identifier(contexts: Context[], { name }: { name: string }) {
     return {
       type: "Identifier",
       name
@@ -433,7 +438,7 @@ const definitions: { [key: string]: Function } = {
     return { type: "NullLiteral" };
   },
 
-  number_constant(ctx: Context, { value }: { value: number }) {
+  number_constant(contexts: Context[], { value }: { value: number }) {
     return {
       type: "NumericLiteral",
       value
@@ -441,41 +446,48 @@ const definitions: { [key: string]: Function } = {
   },
 
   object_constant(
-    ctx: Context,
+    contexts: Context[],
     { properties }: { properties: { key: any; value: any }[] }
   ) {
     return {
       type: "ObjectExpression",
       properties: properties.map(({ key, value }) => ({
         type: "ObjectProperty",
-        key: transform(ctx, key),
-        value: transform(ctx, value)
+        key: transform(contexts, key),
+        value: transform(contexts, value)
       }))
     };
   },
 
   object_property_list(
-    ctx: Context,
+    contexts: Context[],
     { properties }: { properties: { property: any; alias: any }[] }
   ) {
     let n = 0;
     return {
       type: "ObjectExpression",
       properties: properties.map(({ property, alias }) => {
-        const key = alias || property.property;
+        let key;
+        if (alias) {
+          key = alias;
+        } else if (property.type === "scalar_member_expression") {
+          key = property.property;
+        } else if (property.type === "identifier") {
+          key = property;
+        }
         return {
           type: "ObjectProperty",
           key: key
-            ? transform(ctx, key)
+            ? transform(contexts, key)
             : // eslint-disable-next-line no-plusplus
               { type: "Identifier", name: `$${++n}` },
-          value: transform(ctx, property)
+          value: transform(contexts, property)
         };
       })
     };
   },
 
-  parameter_name(ctx: Context, { name }: { name: string }) {
+  parameter_name(contexts: Context[], { name }: { name: string }) {
     return {
       type: "MemberExpression",
       object: {
@@ -489,42 +501,45 @@ const definitions: { [key: string]: Function } = {
     };
   },
 
-  scalar_array_expression(ctx: Context, { elements }: { elements: any[] }) {
+  scalar_array_expression(
+    contexts: Context[],
+    { elements }: { elements: any[] }
+  ) {
     return {
       type: "ArrayExpression",
-      elements: elements.map(v => transform(ctx, v))
+      elements: elements.map(v => transform(contexts, v))
     };
   },
 
   scalar_between_expression(
-    ctx: Context,
+    contexts: Context[],
     { value, begin, end }: { value: any; begin: any; end: any }
   ) {
-    const left = transform(ctx, value);
+    const left = transform(contexts, value);
     return {
       type: "BinaryExpression",
       left: {
         type: "BinaryExpression",
         left,
         operator: ">=",
-        right: transform(ctx, begin)
+        right: transform(contexts, begin)
       },
       operator: "&&",
       right: {
         type: "BinaryExpression",
         left,
         operator: "<=",
-        right: transform(ctx, end)
+        right: transform(contexts, end)
       }
     };
   },
 
   scalar_binary_expression(
-    ctx: Context,
+    contexts: Context[],
     { left, operator, right }: { left: any; operator: string; right: any }
   ) {
-    const l = transform(ctx, left);
-    const r = transform(ctx, right);
+    const l = transform(contexts, left);
+    const r = transform(contexts, right);
 
     if (operator === "??") {
       // `typeof left !== "undefined" ? left : right`
@@ -580,7 +595,7 @@ const definitions: { [key: string]: Function } = {
   },
 
   scalar_conditional_expression(
-    ctx: Context,
+    contexts: Context[],
     {
       test,
       consequent,
@@ -589,14 +604,14 @@ const definitions: { [key: string]: Function } = {
   ) {
     return {
       type: "ConditionalExpression",
-      test: strictTrueNode(transform(ctx, test)),
-      consequent: transform(ctx, consequent),
-      alternate: transform(ctx, alternate)
+      test: strictTrueNode(transform(contexts, test)),
+      consequent: transform(contexts, consequent),
+      alternate: transform(contexts, alternate)
     };
   },
 
   scalar_function_expression(
-    ctx: Context,
+    contexts: Context[],
     {
       type,
       name,
@@ -604,11 +619,12 @@ const definitions: { [key: string]: Function } = {
       udf
     }: { type: string; name: any; arguments: any[]; udf: boolean }
   ) {
+    const ctx = contexts[contexts.length - 1];
     const aggregation =
       ctx.aggregation && isAggregateFunction({ type, name, udf });
 
-    const f = transform(ctx, name);
-    f.name = f.name.toUpperCase();
+    const f = transform(contexts, name);
+    if (!udf) f.name = f.name.toUpperCase();
 
     return {
       type: "CallExpression",
@@ -639,16 +655,16 @@ const definitions: { [key: string]: Function } = {
               {
                 type: "ArrowFunctionExpression",
                 params: ctx.document ? [ctx.document] : [],
-                body: transform(ctx, a)
+                body: transform(contexts, a)
               }
             ]
           }))
-        : args.map(a => transform(ctx, a))
+        : args.map(a => transform(contexts, a))
     };
   },
 
   scalar_in_expression(
-    ctx: Context,
+    contexts: Context[],
     { value, list }: { value: any; list: any[] }
   ) {
     return {
@@ -657,30 +673,30 @@ const definitions: { [key: string]: Function } = {
         type: "MemberExpression",
         object: {
           type: "ArrayExpression",
-          elements: list.map(l => transform(ctx, l))
+          elements: list.map(l => transform(contexts, l))
         },
         property: {
           type: "Identifier",
           name: "includes"
         }
       },
-      arguments: [transform(ctx, value)]
+      arguments: [transform(contexts, value)]
     };
   },
 
   scalar_member_expression(
-    ctx: Context,
+    contexts: Context[],
     {
       object,
       property,
       computed
     }: { object: any; property: any; computed: boolean }
   ) {
-    const objectNode = transform(ctx, object);
+    const objectNode = transform(contexts, object);
     const memberExpressionNode = {
       type: "MemberExpression",
       object: objectNode,
-      property: transform(ctx, property),
+      property: transform(contexts, property),
       computed
     };
 
@@ -715,24 +731,24 @@ const definitions: { [key: string]: Function } = {
   },
 
   scalar_object_expression(
-    ctx: Context,
+    contexts: Context[],
     { properties }: { properties: any[] }
   ) {
     return {
       type: "ObjectExpression",
       properties: properties.map(({ key, value }) => ({
         type: "ObjectProperty",
-        key: transform(ctx, key),
-        value: transform(ctx, value)
+        key: transform(contexts, key),
+        value: transform(contexts, value)
       }))
     };
   },
 
   scalar_unary_expression(
-    ctx: Context,
+    contexts: Context[],
     { operator, argument }: { operator: string; argument: any }
   ) {
-    const node = transform(ctx, argument);
+    const node = transform(contexts, argument);
 
     if (operator === "NOT") {
       return callHelperNode("not", node);
@@ -749,7 +765,7 @@ const definitions: { [key: string]: Function } = {
   },
 
   select_query(
-    ctx: Context,
+    contexts: Context[],
     {
       top,
       select,
@@ -758,39 +774,276 @@ const definitions: { [key: string]: Function } = {
       orderBy
     }: { top: any; select: any; from: any; where: any; orderBy: any }
   ) {
+    const ctx: Context = {};
+    if (contexts.length > 0) {
+      ctx.document = clone(contexts[contexts.length - 1].document);
+    }
+    contexts.push(ctx);
+
     if (from) {
       ctx.ast = {
         type: "Identifier",
         name: "$c"
       };
-      ctx.ast = transform(ctx, from);
+      ctx.ast = transform(contexts, from);
     } else {
       ctx.ast = {
         type: "ArrayExpression",
         elements: [
-          {
-            type: "NullLiteral"
-          }
+          contexts.length === 1
+            ? {
+                type: "NullLiteral"
+              }
+            : clone(ctx.document)
         ]
       };
     }
 
     if (where) {
-      ctx.ast = transform(ctx, where);
+      ctx.ast = transform(contexts, where);
     }
 
     if (orderBy) {
-      ctx.ast = transform(ctx, orderBy);
-    } else if (ctx.document) {
+      ctx.ast = transform(contexts, orderBy);
+    } else if (contexts.length === 1 && ctx.document) {
       // try sort by `_rid` when `FROM` is specified
       ctx.ast = callHelperNode("sort", ctx.ast, ridPathNode(ctx));
     }
 
     if (top) {
-      ctx.ast = transform(ctx, top);
+      ctx.ast = transform(contexts, top);
     }
 
-    ctx.ast = transform(ctx, select);
+    const node = transform(contexts, select);
+
+    if (contexts.length > 1) {
+      contexts.pop();
+    }
+
+    return node;
+  },
+
+  select_specification(
+    contexts: Context[],
+    {
+      "*": all,
+      properties,
+      value
+    }: { "*": boolean; properties?: { properties: any[] }; value: any }
+  ) {
+    const ctx = contexts[contexts.length - 1];
+    if (properties) {
+      ctx.aggregation = properties.properties.some(({ property }) =>
+        isAggregateFunction(property)
+      );
+    } else {
+      ctx.aggregation = value ? isAggregateFunction(value) : false;
+    }
+
+    if (ctx.aggregation) {
+      // ```
+      // (
+      //   $_ = $c.filter(...),
+      //   [{ $1: COUNT($_.map(c => c.id)), $2: ... }]
+      // )
+      // ```
+      return {
+        type: "SequenceExpression",
+        expressions: [
+          // cache filtered result to a variable
+          {
+            type: "AssignmentExpression",
+            left: {
+              type: "Identifier",
+              name: "$_"
+            },
+            operator: "=",
+            right: ctx.ast
+          },
+          {
+            type: "ArrayExpression",
+            elements: [transform(contexts, properties || value)]
+          }
+        ]
+      };
+    }
+
+    if (all) {
+      if (!ctx.document) {
+        throw new SyntaxError(
+          "'SELECT *' is not valid if FROM clause is omitted."
+        );
+      }
+      if (ctx.document.properties.length > 1) {
+        throw new SyntaxError(
+          "'SELECT *' is only valid with a single input set."
+        );
+      }
+    }
+
+    if (!ctx.document) {
+      return {
+        type: "CallExpression",
+        callee: {
+          type: "MemberExpression",
+          object: ctx.ast,
+          property: {
+            type: "Identifier",
+            name: "map"
+          }
+        },
+        arguments: [
+          {
+            type: "ArrowFunctionExpression",
+            params: [] as any[],
+            body: transform(contexts, properties || value)
+          }
+        ]
+      };
+    }
+
+    const select = all
+      ? ctx.document.properties[0]
+      : transform(contexts, properties || value);
+
+    return {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: ctx.ast,
+        property: {
+          type: "Identifier",
+          name: "map"
+        }
+      },
+      arguments: [
+        {
+          type: "ArrowFunctionExpression",
+          params: [ctx.document],
+          body:
+            contexts.length === 1
+              ? {
+                  type: "ArrayExpression",
+                  elements: [select, ctx.document]
+                }
+              : select
+        }
+      ]
+    };
+  },
+
+  sort_specification(
+    contexts: Context[],
+    { expressions }: { expressions: any[] }
+  ) {
+    if (expressions.length > 1) {
+      throw new SyntaxError(
+        "Multiple order-by items are not supported. Please specify a single order-by items."
+      );
+    }
+
+    const ctx = contexts[contexts.length - 1];
+    ctx.orderBy = transform(contexts, expressions[0]);
+
+    return callHelperNode("sort", ctx.ast, ridPathNode(ctx), ctx.orderBy);
+  },
+
+  sort_expression(
+    contexts: Context[],
+    { expression, order }: { expression: any; order: string }
+  ) {
+    if (expression.type !== "scalar_member_expression") {
+      throw new SyntaxError(
+        "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
+      );
+    }
+
+    const node = transform(contexts, expression);
+
+    traverse({ type: "Program", body: [node] } as any, {
+      MemberExpression(path: any) {
+        if (
+          path.node.object.type === "Identifier" &&
+          path.node.object.name !== "$"
+        ) {
+          // eslint-disable-next-line no-param-reassign
+          path.node.object = {
+            type: "MemberExpression",
+            object: {
+              type: "Identifier",
+              name: "$"
+            },
+            property: path.node.object
+          };
+          path.skip();
+        }
+      }
+    });
+
+    return {
+      type: "ArrayExpression",
+      elements: [
+        {
+          type: "ArrowFunctionExpression",
+          params: [
+            {
+              type: "Identifier",
+              name: "$"
+            }
+          ],
+          body: node
+        },
+        {
+          type: "BooleanLiteral",
+          value: order === "DESC"
+        }
+      ]
+    };
+  },
+
+  sql(contexts: Context[], { body }: { body: any }) {
+    const node = transform(contexts, body);
+    const ctx = contexts[0];
+
+    let returnNode;
+    if (!ctx.document || ctx.aggregation) {
+      returnNode = {
+        type: "ObjectExpression",
+        properties: [
+          {
+            type: "ObjectProperty",
+            computed: false,
+            shorthand: false,
+            kind: "init",
+            key: {
+              type: "Identifier",
+              name: "result"
+            },
+            value: callHelperNode("stripUndefined", node)
+          },
+          {
+            type: "ObjectProperty",
+            computed: false,
+            shorthand: false,
+            kind: "init",
+            key: {
+              type: "Identifier",
+              name: "continuation"
+            },
+            value: { type: "NullLiteral" }
+          }
+        ]
+      };
+    } else {
+      returnNode = callHelperNode(
+        "paginate",
+        node,
+        { type: "Identifier", name: "$maxItemCount" },
+        { type: "Identifier", name: "$continuation" },
+        ridPathNode(ctx),
+        ctx.orderBy
+      );
+    }
 
     return {
       type: "ArrowFunctionExpression",
@@ -844,238 +1097,22 @@ const definitions: { [key: string]: Function } = {
         body: [
           {
             type: "ReturnStatement",
-            argument: ctx.ast
+            argument: returnNode
           }
         ]
       }
     };
   },
 
-  select_specification(
-    ctx: Context,
-    {
-      "*": all,
-      properties,
-      value
-    }: { "*": boolean; properties?: { properties: any[] }; value: any }
-  ) {
-    if (properties) {
-      ctx.aggregation = properties.properties.some(({ property }) =>
-        isAggregateFunction(property)
-      );
-    } else {
-      ctx.aggregation = value ? isAggregateFunction(value) : false;
-    }
-
-    if (ctx.aggregation) {
-      // ```
-      // (
-      //   $_ = $c.filter(...),
-      //   {
-      //     result: $h.stripUndefined([{ $1: COUNT($_.map(c => c.id)), $2: ... }]),
-      //     continuation: null
-      //   }
-      // )
-      // ```
-      return {
-        type: "SequenceExpression",
-        expressions: [
-          // cache filtered result to a variable
-          {
-            type: "AssignmentExpression",
-            left: {
-              type: "Identifier",
-              name: "$_"
-            },
-            operator: "=",
-            right: ctx.ast
-          },
-          resultNode({
-            type: "ArrayExpression",
-            elements: [
-              callHelperNode(
-                "stripUndefined",
-                transform(ctx, properties || value)
-              )
-            ]
-          })
-        ]
-      };
-    }
-
-    if (all) {
-      if (!ctx.document) {
-        throw new SyntaxError(
-          "'SELECT *' is not valid if FROM clause is omitted."
-        );
-      }
-      if (ctx.document.properties.length > 1) {
-        throw new SyntaxError(
-          "'SELECT *' is only valid with a single input set."
-        );
-      }
-    }
-
-    if (!ctx.document) {
-      return resultNode({
-        type: "CallExpression",
-        callee: {
-          type: "MemberExpression",
-          object: ctx.ast,
-          property: {
-            type: "Identifier",
-            name: "map"
-          }
-        },
-        arguments: [
-          {
-            type: "ArrowFunctionExpression",
-            params: [],
-            body: transform(ctx, properties || value)
-          }
-        ]
-      });
-    }
-
-    return {
-      type: "SequenceExpression",
-      expressions: [
-        {
-          type: "AssignmentExpression",
-          left: {
-            type: "Identifier",
-            name: "$_"
-          },
-          operator: "=",
-          right: callHelperNode(
-            "paginate",
-            ctx.ast,
-            { type: "Identifier", name: "$maxItemCount" },
-            { type: "Identifier", name: "$continuation" },
-            ridPathNode(ctx),
-            ctx.orderBy
-          )
-        },
-        resultNode(
-          {
-            type: "CallExpression",
-            callee: {
-              type: "MemberExpression",
-              object: {
-                type: "MemberExpression",
-                object: {
-                  type: "Identifier",
-                  name: "$_"
-                },
-                property: {
-                  type: "Identifier",
-                  name: "result"
-                }
-              },
-              property: {
-                type: "Identifier",
-                name: "map"
-              }
-            },
-            arguments: [
-              {
-                type: "ArrowFunctionExpression",
-                params: [ctx.document],
-                body: all
-                  ? ctx.document.properties[0]
-                  : transform(ctx, properties || value)
-              }
-            ]
-          },
-          {
-            type: "MemberExpression",
-            object: {
-              type: "Identifier",
-              name: "$_"
-            },
-            property: {
-              type: "Identifier",
-              name: "continuation"
-            }
-          }
-        )
-      ]
-    };
-  },
-
-  sort_specification(ctx: Context, { expressions }: { expressions: any[] }) {
-    if (expressions.length > 1) {
-      throw new SyntaxError(
-        "Multiple order-by items are not supported. Please specify a single order-by items."
-      );
-    }
-
-    ctx.orderBy = transform(ctx, expressions[0]);
-
-    return callHelperNode("sort", ctx.ast, ridPathNode(ctx), ctx.orderBy);
-  },
-
-  sort_expression(
-    ctx: Context,
-    { expression, order }: { expression: any; order: string }
-  ) {
-    if (expression.type !== "scalar_member_expression") {
-      throw new SyntaxError(
-        "Unsupported ORDER BY clause. ORDER BY item expression could not be mapped to a document path."
-      );
-    }
-
-    const node = transform(ctx, expression);
-
-    traverse({ type: "Program", body: [node] } as any, {
-      MemberExpression(path: any) {
-        if (
-          path.node.object.type === "Identifier" &&
-          path.node.object.name !== "$"
-        ) {
-          // eslint-disable-next-line no-param-reassign
-          path.node.object = {
-            type: "MemberExpression",
-            object: {
-              type: "Identifier",
-              name: "$"
-            },
-            property: path.node.object
-          };
-          path.skip();
-        }
-      }
-    });
-
-    return {
-      type: "ArrayExpression",
-      elements: [
-        {
-          type: "ArrowFunctionExpression",
-          params: [
-            {
-              type: "Identifier",
-              name: "$"
-            }
-          ],
-          body: node
-        },
-        {
-          type: "BooleanLiteral",
-          value: order === "DESC"
-        }
-      ]
-    };
-  },
-
-  string_constant(ctx: Context, { value }: { value: string }) {
+  string_constant(contexts: Context[], { value }: { value: string }) {
     return {
       type: "StringLiteral",
       value
     };
   },
 
-  top_specification(ctx: Context, { value }: { value: any }) {
+  top_specification(contexts: Context[], { value }: { value: any }) {
+    const ctx = contexts[contexts.length - 1];
     return {
       type: "CallExpression",
       callee: {
@@ -1091,7 +1128,7 @@ const definitions: { [key: string]: Function } = {
           type: "NumericLiteral",
           value: 0
         },
-        transform(ctx, value)
+        transform(contexts, value)
       ]
     };
   },
@@ -1104,4 +1141,4 @@ const definitions: { [key: string]: Function } = {
   }
 };
 
-export default (sqlAst: { [x: string]: any }) => transform({}, sqlAst);
+export default (sqlAst: { [x: string]: any }) => transform([], sqlAst);

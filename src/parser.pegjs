@@ -37,10 +37,6 @@ select_query
       }
     }
 
-select_subquery
-  = "(" _ subquery:select_query _ ")"
-    { return subquery }
-
 select_specification
   = '*'
     {
@@ -106,7 +102,7 @@ from_source
 collection_expression
   = collection_member_expression
   / collection_primary_expression
-  / select_subquery
+  / collection_subquery_expression
 
 filter_condition
   = condition:scalar_expression
@@ -398,8 +394,18 @@ scalar_primary_expression
   / constant
   / scalar_array_expression
   / scalar_object_expression
+  / scalar_subquery_expression
   / "(" _ expression:scalar_expression _ ")"
     { return expression }
+
+scalar_subquery_expression
+  = "(" _ expression:select_query _ ")"
+    {
+      return {
+        type: "scalar_subquery_expression",
+        expression
+      }
+    }
 
 scalar_member_expression
   = head:scalar_primary_expression
@@ -547,6 +553,15 @@ collection_member_expression
         property,
         computed
       }), head)
+    }
+
+collection_subquery_expression
+  = "(" _ expression:select_query _ ")"
+    {
+      return {
+        type: "collection_subquery_expression",
+        expression
+      }
     }
 
 top_specification

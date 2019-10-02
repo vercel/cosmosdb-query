@@ -4,9 +4,10 @@ import * as aggregateFunctions from "./aggregate-functions";
 import { SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
 
 type Context = {
-  ast?: any;
-  document?: any;
   aggregation?: boolean;
+  ast?: any;
+  highCardinality?: boolean;
+  document?: any;
   orderBy?: any;
 };
 
@@ -161,6 +162,20 @@ const definitions: { [key: string]: Function } = {
     };
   },
 
+  collection_subquery_expression(
+    contexts: Context[],
+    { expression }: { expression: any }
+  ) {
+    const ctx = contexts[contexts.length - 1];
+    const nextCtx: Context = {
+      document: ctx.document ? clone(ctx.document) : null
+    };
+    contexts.push(nextCtx);
+    const node = transform(contexts, expression);
+    contexts.pop();
+    return node;
+  },
+
   filter_condition(contexts: Context[], { condition }: { condition: any }) {
     const ctx = contexts[contexts.length - 1];
     return {
@@ -203,13 +218,17 @@ const definitions: { [key: string]: Function } = {
     const ctx = contexts[contexts.length - 1];
     return [source, ...(joins || [])].reduce(
       (object, { expression, alias, iteration }, i) => {
+        const isSubquery = expression.type === "collection_subquery_expression";
+        if (!ctx.highCardinality) {
+          ctx.highCardinality = iteration || isSubquery;
+        }
+
         const exp = transform(contexts, expression);
         const aliasNode = alias ? transform(contexts, alias) : null;
         const node = aliasNode || exp;
-        const nameNode =
-          expression.type !== "select_query"
-            ? node.property || node
-            : aliasNode || { type: "Identifier", name: `$${i}` };
+        const nameNode = !isSubquery
+          ? node.property || node
+          : aliasNode || { type: "Identifier", name: `$${i}` };
 
         if (!ctx.document) {
           if (exp.type !== "MemberExpression") {
@@ -243,8 +262,8 @@ const definitions: { [key: string]: Function } = {
           ]
         };
 
-        if (iteration || expression.type === "select_query") {
-          const arrayValue = iteration && expression.type === "select_query";
+        if (iteration || isSubquery) {
+          const arrayValue = iteration && isSubquery;
           const mapProps = {
             type: "CallExpression",
             callee: {
@@ -744,6 +763,62 @@ const definitions: { [key: string]: Function } = {
     };
   },
 
+  scalar_subquery_expression(
+    contexts: Context[],
+    { expression }: { expression: any }
+  ) {
+    const ctx = contexts[contexts.length - 1];
+    const nextCtx: Context = {
+      document: ctx.document ? clone(ctx.document) : null
+    };
+    contexts.push(nextCtx);
+    const object = transform(contexts, expression);
+    contexts.pop();
+
+    if (!nextCtx.aggregation && nextCtx.highCardinality) {
+      throw new SyntaxError(
+        "The cardinality of a scalar subquery result set cannot be greater than one."
+      );
+    }
+
+    return {
+      type: "SequenceExpression",
+      expressions: [
+        {
+          type: "AssignmentExpression",
+          left: {
+            type: "Identifier",
+            name: "$_"
+          },
+          operator: "=",
+          right: {
+            type: "MemberExpression",
+            object,
+            property: {
+              type: "NumericLiteral",
+              value: 0
+            }
+          }
+        },
+        {
+          type: "ConditionalExpression",
+          test: isNotUndefinedNode({
+            type: "Identifier",
+            name: "$_"
+          }),
+          consequent: {
+            type: "Identifier",
+            name: "$_"
+          },
+          alternate: {
+            type: "ObjectExpression",
+            properties: [] as any[]
+          }
+        }
+      ]
+    };
+  },
+
   scalar_unary_expression(
     contexts: Context[],
     { operator, argument }: { operator: string; argument: any }
@@ -774,11 +849,7 @@ const definitions: { [key: string]: Function } = {
       orderBy
     }: { top: any; select: any; from: any; where: any; orderBy: any }
   ) {
-    const ctx: Context = {};
-    if (contexts.length > 0) {
-      ctx.document = clone(contexts[contexts.length - 1].document);
-    }
-    contexts.push(ctx);
+    const ctx = contexts[contexts.length - 1];
 
     if (from) {
       ctx.ast = {
@@ -790,7 +861,7 @@ const definitions: { [key: string]: Function } = {
       ctx.ast = {
         type: "ArrayExpression",
         elements: [
-          contexts.length === 1
+          contexts.length === 1 || !ctx.document
             ? {
                 type: "NullLiteral"
               }
@@ -814,13 +885,7 @@ const definitions: { [key: string]: Function } = {
       ctx.ast = transform(contexts, top);
     }
 
-    const node = transform(contexts, select);
-
-    if (contexts.length > 1) {
-      contexts.pop();
-    }
-
-    return node;
+    return transform(contexts, select);
   },
 
   select_specification(
@@ -1002,8 +1067,9 @@ const definitions: { [key: string]: Function } = {
   },
 
   sql(contexts: Context[], { body }: { body: any }) {
+    const ctx: Context = {};
+    contexts.push(ctx);
     const node = transform(contexts, body);
-    const ctx = contexts[0];
 
     let returnNode;
     if (!ctx.document || ctx.aggregation) {

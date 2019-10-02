@@ -42,3 +42,13 @@ export const asteriskIsNotValidIfFromClauseIsOmitted = testQuery(
   },
   new SyntaxError("'SELECT *' is not valid if FROM clause is omitted.")
 );
+
+export const cardinalityOfScalarSubqueryResultSetCannotBeGreaterThenOne = testQuery(
+  [],
+  {
+    query: "select (select l from l in c.list) from c"
+  },
+  new SyntaxError(
+    "The cardinality of a scalar subquery result set cannot be greater than one."
+  )
+);

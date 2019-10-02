@@ -1,4 +1,4 @@
-// Reference: https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query-reference
+// Reference: https://docs.microsoft.com/en-us/azure/cosmos-db/sql-query-select
 
 {
   function buildBinaryExpression(head, tail) {
@@ -11,13 +11,21 @@
   }
 }
 
+sql = _ body:select_query _
+      {
+        return {
+          type: 'sql',
+          body
+        }
+      }
+
 select_query
   = select _
     top:(top _ v:top_specification { return v })? _
     select:select_specification _
     from:(from _ v:from_specification { return v })? _
     where:(where _ v:filter_condition { return v })? _
-    orderBy:(order _ by _ v:sort_specification { return v })? _
+    orderBy:(order _ by _ v:sort_specification { return v })?
     {
       return {
         type: 'select_query',
@@ -63,7 +71,7 @@ object_property_list
     }
 
 from_specification
-  = source:from_source joins:(_ join _ v:(from_source / "(" _ select_query _ ")") { return v })*
+  = source:from_source joins:(_ join _ v:(from_source) { return v })*
     {
       return {
         type: 'from_specification',
@@ -94,6 +102,7 @@ from_source
 collection_expression
   = collection_member_expression
   / collection_primary_expression
+  / collection_subquery_expression
 
 filter_condition
   = condition:scalar_expression
@@ -270,6 +279,8 @@ and = "AND"i !identifier_start { return "AND" }
 or = "OR"i !identifier_start { return "OR" }
 not = "NOT"i !identifier_start { return "NOT" }
 between = "BETWEEN"i !identifier_start
+exists = "EXISTS"i !identifier_start
+array = "ARRAY"i !identifier_start
 null = "null" !identifier_start
 true = "true" !identifier_start
 false = "false" !identifier_start
@@ -292,6 +303,8 @@ reserved
   / or
   / not
   / between
+  / exists
+  / array
   / null
   / true
   / false
@@ -385,8 +398,41 @@ scalar_primary_expression
   / constant
   / scalar_array_expression
   / scalar_object_expression
+  / subquery_expression
   / "(" _ expression:scalar_expression _ ")"
     { return expression }
+
+subquery_expression
+  = array_subquery_expression
+  / exists_subquery_expression
+  / scalar_subquery_expression
+
+array_subquery_expression
+  = array _ expression:subquery
+    {
+      return {
+        type: "array_subquery_expression",
+        expression
+      }
+    }
+
+exists_subquery_expression
+  = exists _ expression:subquery
+    {
+      return {
+        type: 'exists_subquery_expression',
+        expression
+      }
+    }
+
+scalar_subquery_expression
+  = expression:subquery
+    {
+      return {
+        type: "scalar_subquery_expression",
+        expression
+      }
+    }
 
 scalar_member_expression
   = head:scalar_primary_expression
@@ -536,6 +582,15 @@ collection_member_expression
       }), head)
     }
 
+collection_subquery_expression
+  = expression:subquery
+    {
+      return {
+        type: "collection_subquery_expression",
+        expression
+      }
+    }
+
 top_specification
   = value:(unsigned_integer / parameter_name)
     {
@@ -557,3 +612,7 @@ unsigned_integer
 scalar_expression_list
   = head:scalar_expression? tail:(_ "," _ v:scalar_expression { return v })*
     { return head ? [head, ...tail] : [] }
+
+subquery
+  = "(" _ subquery:select_query _ ")"
+    { return subquery }

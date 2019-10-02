@@ -32,9 +32,9 @@ export default function containsPartitionKeys(
   paths: string[]
 ) {
   if (!paths.length) return true;
-  if (!ast.where) return false;
+  if (!ast.body || !ast.body.where) return false;
 
-  const { condition } = ast.where;
+  const { condition } = ast.body.where;
   const nodes = conditionKeyNodes(condition);
   const keys = nodes.map(n => new Set(n.map(toPartitionKey)));
   return keys.every(k => paths.every(p => k.has(p)));

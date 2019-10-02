@@ -2,7 +2,6 @@
 import generate from "@babel/generator";
 import containsPartitionKeys from "./contains-partition-keys";
 import execute from "./executor";
-// @ts-ignore
 import { parse, SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
 import transform from "./transformer";
 

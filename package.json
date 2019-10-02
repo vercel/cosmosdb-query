@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "build": "tsc && yarn build-parser",
-    "build-parser": "pegjs -o lib/parser.js src/parser.pegjs",
+    "build-parser": "pegjs -o lib/parser.js src/parser.pegjs && cp {src,lib}/parser.d.ts",
     "format": "prettier --write '{src,test}/**/*.ts'",
     "format-staged": "git diff --cached --name-only '*.ts' | xargs prettier --list-different",
     "lint": "eslint --ignore-pattern '*.pegjs' '{src,test}/**/*'",

@@ -6,8 +6,8 @@ import query from "../lib";
 const collection = [
   {
     id: "00001",
-    description: "infant formula",
-    tags: [{ name: "infant formula" }],
+    description: "babyfood, infant formula",
+    tags: [{ name: "babyfood" }, { name: "infant formula" }],
     nutrients: [
       {
         id: "1",
@@ -20,8 +20,8 @@ const collection = [
   },
   {
     id: "00002",
-    description: "fruit, infant formula",
-    tags: [{ name: "fruit" }, { name: "infant formula" }],
+    description: "snacks, infant formula",
+    tags: [{ name: "snacks" }, { name: "infant formula" }],
     nutrients: [
       { id: "1", description: "A", nutritionValue: 1, units: "g" },
       { id: "2", description: "B", nutritionValue: 2 },
@@ -31,8 +31,8 @@ const collection = [
   },
   {
     id: "00003",
-    description: "snacks",
-    tags: [{ name: "snacks" }],
+    description: "fruit, orange",
+    tags: [{ name: "fruit" }, { name: "orange" }],
     nutrients: [
       { id: "4", description: "C", nutritionValue: 70, units: "mg" },
       { id: "5", description: "D", nutritionValue: 102, units: "mg" }
@@ -227,8 +227,8 @@ export const simpleExpressionScalarSubqueries3 = () => {
   // NOTE: The document says "You can rewrite this query" but they're a bit different
   assert.deepStrictEqual(data1.result, [
     { id: "00001" },
-    { id: "00002", $1: "fruit, infant formula" },
-    { id: "00003" }
+    { id: "00002" },
+    { id: "00003", $1: "fruit, orange" }
   ]);
 
   const data2 = query(`
@@ -238,8 +238,8 @@ export const simpleExpressionScalarSubqueries3 = () => {
 
   assert.deepStrictEqual(data2.result, [
     { id: "00001" },
-    { id: "00002", description: "fruit, infant formula" },
-    { id: "00003" }
+    { id: "00002" },
+    { id: "00003", description: "fruit, orange" }
   ]);
 };
 
@@ -294,4 +294,108 @@ export const aggregateScalarSubqueries3 = () => {
 
   assert.deepStrictEqual(data1, data2);
   assert.deepStrictEqual(data1.result, [{ id: "00003", count_mg: 2 }]);
+};
+
+export const existsExpression1 = () => {
+  const data = query(`
+    SELECT EXISTS (SELECT VALUE undefined)
+  `).exec(collection);
+  assert.deepStrictEqual(data.result, [{ $1: false }]);
+};
+
+export const existsExpression2 = () => {
+  const data = query(`
+    SELECT EXISTS (SELECT undefined)
+  `).exec(collection);
+  assert.deepStrictEqual(data.result, [{ $1: true }]);
+};
+
+export const rewritingArrayContainsAndJoinAsExists1 = () => {
+  const data1 = query(`
+    SELECT TOP 5 f.id, f.tags
+    FROM food f
+    WHERE ARRAY_CONTAINS(f.tags, {name: 'orange'})
+  `).exec(collection);
+
+  const data2 = query(`
+    SELECT TOP 5 f.id, f.tags
+    FROM food f
+    WHERE EXISTS(SELECT VALUE t FROM t IN f.tags WHERE t.name = 'orange')
+  `).exec(collection);
+
+  assert.deepStrictEqual(data1, data2);
+  assert.deepStrictEqual(data1.result, [
+    { id: "00003", tags: [{ name: "fruit" }, { name: "orange" }] }
+  ]);
+};
+
+export const rewritingArrayContainsAndJoinAsExists2 = () => {
+  const data = query(`
+    SELECT VALUE c.description
+    FROM c
+    WHERE EXISTS(
+      SELECT VALUE n
+      FROM n IN c.nutrients
+      WHERE n.units = "mg" AND n.nutritionValue > 0
+    )
+  `).exec(collection);
+
+  assert.deepStrictEqual(data.result, [
+    "snacks, infant formula",
+    "fruit, orange"
+  ]);
+};
+
+export const rewritingArrayContainsAndJoinAsExists3 = () => {
+  const data = query(`
+    SELECT TOP 1 c.description, EXISTS(
+      SELECT VALUE n
+      FROM n IN c.nutrients
+      WHERE n.units = "mg" AND n.nutritionValue > 0) as a
+    FROM c
+  `).exec(collection);
+
+  assert.deepStrictEqual(data.result, [
+    { description: "babyfood, infant formula", a: false }
+  ]);
+};
+
+export const arrayExpression1 = () => {
+  const data = query(`
+    SELECT TOP 1   f.id, ARRAY(SELECT VALUE t.name FROM t in f.tags) AS tagNames
+    FROM  food f
+  `).exec(collection);
+  assert.deepStrictEqual(data.result, [
+    {
+      id: "00001",
+      tagNames: ["babyfood", "infant formula"]
+    }
+  ]);
+};
+
+export const arrayExpression2 = () => {
+  const data = query(`
+    SELECT TOP 1 c.id, ARRAY(SELECT VALUE t FROM t in c.tags WHERE t.name != 'infant formula') AS tagNames
+    FROM c
+  `).exec(collection);
+  assert.deepStrictEqual(data.result, [
+    {
+      id: "00001",
+      tagNames: [{ name: "babyfood" }]
+    }
+  ]);
+};
+
+export const arrayExpression3 = () => {
+  const data = query(`
+    SELECT TOP 1 c.id, ARRAY(SELECT VALUE t.name FROM t in c.tags) as tagNames
+    FROM c
+    JOIN n IN (SELECT VALUE ARRAY(SELECT t FROM t in c.tags WHERE t.name != 'infant formula'))
+  `).exec(collection);
+  assert.deepStrictEqual(data.result, [
+    {
+      id: "00001",
+      tagNames: ["babyfood", "infant formula"]
+    }
+  ]);
 };

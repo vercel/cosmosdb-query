@@ -320,3 +320,6 @@ export const paginate = (
     continuation: nextContinuation
   };
 };
+
+export const exists = (rows: any[]) =>
+  rows.length > 1 ? true : typeof rows[0] !== "undefined";

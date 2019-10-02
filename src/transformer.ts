@@ -121,6 +121,20 @@ function clone(o: any) {
   return JSON.parse(JSON.stringify(o));
 }
 
+function transformWithNewContext(
+  contexts: Context[],
+  node: { [x: string]: any }
+) {
+  const ctx = contexts[contexts.length - 1];
+  const nextCtx: Context = {
+    document: ctx.document ? clone(ctx.document) : null
+  };
+  contexts.push(nextCtx);
+  const transformed = transform(contexts, node);
+  contexts.pop();
+  return [transformed, nextCtx];
+}
+
 const definitions: { [key: string]: Function } = {
   array_constant(
     contexts: Context[],
@@ -130,6 +144,13 @@ const definitions: { [key: string]: Function } = {
       type: "ArrayExpression",
       elements: elements.map(v => transform(contexts, v))
     };
+  },
+
+  array_subquery_expression(
+    contexts: Context[],
+    { expression }: { expression: any }
+  ) {
+    return transformWithNewContext(contexts, expression)[0];
   },
 
   boolean_constant(contexts: Context[], { value }: { value: boolean }) {
@@ -166,14 +187,15 @@ const definitions: { [key: string]: Function } = {
     contexts: Context[],
     { expression }: { expression: any }
   ) {
-    const ctx = contexts[contexts.length - 1];
-    const nextCtx: Context = {
-      document: ctx.document ? clone(ctx.document) : null
-    };
-    contexts.push(nextCtx);
-    const node = transform(contexts, expression);
-    contexts.pop();
-    return node;
+    return transformWithNewContext(contexts, expression)[0];
+  },
+
+  exists_subquery_expression(
+    contexts: Context[],
+    { expression }: { expression: any }
+  ) {
+    const rows = transformWithNewContext(contexts, expression)[0];
+    return callHelperNode("exists", rows);
   },
 
   filter_condition(contexts: Context[], { condition }: { condition: any }) {
@@ -663,7 +685,7 @@ const definitions: { [key: string]: Function } = {
               type: "MemberExpression",
               object: {
                 type: "Identifier",
-                name: "$_"
+                name: "$__"
               },
               property: {
                 type: "Identifier",
@@ -712,15 +734,20 @@ const definitions: { [key: string]: Function } = {
     }: { object: any; property: any; computed: boolean }
   ) {
     const objectNode = transform(contexts, object);
-    const memberExpressionNode = {
-      type: "MemberExpression",
-      object: objectNode,
-      property: transform(contexts, property),
-      computed
-    };
 
-    return object.type === "scalar_member_expression"
-      ? {
+    return {
+      type: "SequenceExpression",
+      expressions: [
+        {
+          type: "AssignmentExpression",
+          left: {
+            type: "Identifier",
+            name: "$_"
+          },
+          operator: "=",
+          right: objectNode
+        },
+        {
           type: "ConditionalExpression",
           test: {
             type: "LogicalExpression",
@@ -729,7 +756,11 @@ const definitions: { [key: string]: Function } = {
               left: {
                 type: "UnaryExpression",
                 operator: "typeof",
-                argument: objectNode
+                prefix: true,
+                argument: {
+                  type: "Identifier",
+                  name: "$_"
+                }
               },
               operator: "===",
               right: {
@@ -738,15 +769,27 @@ const definitions: { [key: string]: Function } = {
               }
             },
             operator: "&&",
-            right: objectNode
+            right: {
+              type: "Identifier",
+              name: "$_"
+            }
           },
-          consequent: memberExpressionNode,
+          consequent: {
+            type: "MemberExpression",
+            object: {
+              type: "Identifier",
+              name: "$_"
+            },
+            property: transform(contexts, property),
+            computed
+          },
           alternate: {
             type: "Identifier",
             name: "undefined"
           }
         }
-      : memberExpressionNode;
+      ]
+    };
   },
 
   scalar_object_expression(
@@ -767,55 +810,21 @@ const definitions: { [key: string]: Function } = {
     contexts: Context[],
     { expression }: { expression: any }
   ) {
-    const ctx = contexts[contexts.length - 1];
-    const nextCtx: Context = {
-      document: ctx.document ? clone(ctx.document) : null
-    };
-    contexts.push(nextCtx);
-    const object = transform(contexts, expression);
-    contexts.pop();
+    const [object, ctx] = transformWithNewContext(contexts, expression);
 
-    if (!nextCtx.aggregation && nextCtx.highCardinality) {
+    if (!ctx.aggregation && ctx.highCardinality) {
       throw new SyntaxError(
         "The cardinality of a scalar subquery result set cannot be greater than one."
       );
     }
 
     return {
-      type: "SequenceExpression",
-      expressions: [
-        {
-          type: "AssignmentExpression",
-          left: {
-            type: "Identifier",
-            name: "$_"
-          },
-          operator: "=",
-          right: {
-            type: "MemberExpression",
-            object,
-            property: {
-              type: "NumericLiteral",
-              value: 0
-            }
-          }
-        },
-        {
-          type: "ConditionalExpression",
-          test: isNotUndefinedNode({
-            type: "Identifier",
-            name: "$_"
-          }),
-          consequent: {
-            type: "Identifier",
-            name: "$_"
-          },
-          alternate: {
-            type: "ObjectExpression",
-            properties: [] as any[]
-          }
-        }
-      ]
+      type: "MemberExpression",
+      object,
+      property: {
+        type: "NumericLiteral",
+        value: 0
+      }
     };
   },
 
@@ -908,8 +917,8 @@ const definitions: { [key: string]: Function } = {
     if (ctx.aggregation) {
       // ```
       // (
-      //   $_ = $c.filter(...),
-      //   [{ $1: COUNT($_.map(c => c.id)), $2: ... }]
+      //   $__ = $c.filter(...),
+      //   [{ $1: COUNT($__.map(c => c.id)), $2: ... }]
       // )
       // ```
       return {
@@ -920,7 +929,7 @@ const definitions: { [key: string]: Function } = {
             type: "AssignmentExpression",
             left: {
               type: "Identifier",
-              name: "$_"
+              name: "$__"
             },
             operator: "=",
             right: ctx.ast
@@ -1023,39 +1032,15 @@ const definitions: { [key: string]: Function } = {
       );
     }
 
+    const ctx = contexts[contexts.length - 1];
     const node = transform(contexts, expression);
-
-    traverse({ type: "Program", body: [node] } as any, {
-      MemberExpression(path: any) {
-        if (
-          path.node.object.type === "Identifier" &&
-          path.node.object.name !== "$"
-        ) {
-          // eslint-disable-next-line no-param-reassign
-          path.node.object = {
-            type: "MemberExpression",
-            object: {
-              type: "Identifier",
-              name: "$"
-            },
-            property: path.node.object
-          };
-          path.skip();
-        }
-      }
-    });
 
     return {
       type: "ArrayExpression",
       elements: [
         {
           type: "ArrowFunctionExpression",
-          params: [
-            {
-              type: "Identifier",
-              name: "$"
-            }
-          ],
+          params: [ctx.document],
           body: node
         },
         {
@@ -1152,10 +1137,15 @@ const definitions: { [key: string]: Function } = {
           type: "Identifier",
           name: "$continuation"
         },
-        // intermediate cache
+        // temporal cache
         {
           type: "Identifier",
           name: "$_"
+        },
+        // intermediate cache
+        {
+          type: "Identifier",
+          name: "$__"
         }
       ],
       body: {

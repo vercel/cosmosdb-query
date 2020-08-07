@@ -1,6 +1,6 @@
 {
   "name": "@zeit/cosmosdb-query",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "A SQL parser and executer for Cosmos DB",
   "license": "MIT",
   "main": "lib/index.js",

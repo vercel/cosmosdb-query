@@ -136,7 +136,16 @@ export const equalUndefined = testQuery(
       from c
     `
   },
-  [{}]
+  [
+    {
+      $5: false,
+      $6: false,
+      $7: false,
+      $8: false,
+      $9: false,
+      $10: false
+    }
+  ]
 );
 
 export const notEqualUndefined = testQuery(
@@ -157,7 +166,16 @@ export const notEqualUndefined = testQuery(
       from c
     `
   },
-  [{}]
+  [
+    {
+      $5: true,
+      $6: true,
+      $7: true,
+      $8: true,
+      $9: true,
+      $10: true
+    }
+  ]
 );
 
 [">", "<", ">=", "<="].forEach(op => {
@@ -696,4 +714,13 @@ export const orderByWithParameter = testQuery(
     { id: "baz", name: "baz" },
     { id: "foo", name: "foo" }
   ]
+);
+
+export const notEqualDifferentType = testQuery(
+  [{ id: "javi", foo: null }],
+  {
+    query: "select * from c where c.id = @id AND c.foo != 'test'",
+    parameters: [{ name: "@id", value: "javi" }]
+  },
+  [{ id: "javi", foo: null }]
 );

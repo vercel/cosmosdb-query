@@ -80,8 +80,12 @@ export const stripUndefined = (obj: any): any => {
 };
 
 export const equal = (a: any, b: any) => {
-  if (!equalTypes(a, b)) {
+  if (typeof a === "undefined" || typeof b === "undefined") {
     return undefined;
+  }
+
+  if (!equalTypes(a, b)) {
+    return false;
   }
 
   return deepEqual(a, b);
@@ -89,7 +93,7 @@ export const equal = (a: any, b: any) => {
 
 export const notEqual = (a: any, b: any) => {
   const eq = equal(a, b);
-  return typeof eq !== "undefined" ? !eq : eq;
+  return typeof eq !== "undefined" ? !eq : undefined;
 };
 
 export const compare = (operator: string, a: any, b: any) => {

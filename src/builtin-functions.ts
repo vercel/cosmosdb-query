@@ -275,7 +275,7 @@ export const TOSTRING = def(
       return undefined;
     }
     if (t === "object" || t === "array") {
-      JSON.stringify(v);
+      return JSON.stringify(v);
     }
     return String(v);
   }

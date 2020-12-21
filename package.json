@@ -21,7 +21,10 @@
   },
   "dependencies": {
     "@babel/generator": "7.6.2",
-    "@babel/traverse": "7.6.2"
+    "@babel/traverse": "7.6.2",
+    "@turf/turf": "5.1.6",
+    "@turf/nearest-point-to-line": "6.0.0",
+    "@turf/point-to-line-distance": "6.0.0"
   },
   "devDependencies": {
     "@types/babel__generator": "7.6.0",
@@ -55,7 +58,9 @@
       "no-underscore-dangle": [
         "error",
         {
-          "allow": ["_rid"]
+          "allow": [
+            "_rid"
+          ]
         }
       ]
     },

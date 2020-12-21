@@ -108,4 +108,10 @@ try {
 
 ## Supported queries
 
-All queries are supported except spatial functions
+All queries are supported except spatial functions `ST_ISVALID` and `ST_ISVALIDDETAILED`.
+
+The spatial functions `ST_INTERSECTS`, `ST_WITHIN`, and `ST_DISTANCE` are supported; use parameters to pass in GeoJSON as strings. Items in collections that are GeoJSON are expected to be of type string.
+
+
+
+

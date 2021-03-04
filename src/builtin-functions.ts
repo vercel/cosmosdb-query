@@ -3,7 +3,9 @@ import {
   centroid,
   feature,
   distance,
-  booleanWithin
+  booleanWithin,
+  // eslint-disable-next-line no-unused-vars
+  Feature
 } from "@turf/turf";
 
 // @ts-ignore

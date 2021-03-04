@@ -23,6 +23,14 @@ const collection3 = [
   { _rid: "d", x: 2 }
 ];
 
+const collection4 = [
+  { _rid: "id1", sortKey1: "a", sortKey2: "a" },
+  { _rid: "id2", sortKey1: "a", sortKey2: "b" },
+  { _rid: "id3", sortKey1: "b", sortKey2: "a" },
+  { _rid: "id4", sortKey1: "b", sortKey2: "b" },
+  { _rid: "id5", sortKey1: "b", sortKey2: "c" }
+];
+
 export function testMaxItemCount() {
   const { result, continuation } = query(`SELECT * FROM c`).exec(collection1, {
     maxItemCount: 2
@@ -87,7 +95,7 @@ export function testOrderBy() {
 
   let { result, continuation } = q.exec(collection3, { maxItemCount: 2 });
   assert.deepStrictEqual(result, [{ _rid: "c", x: 1 }, { _rid: "b", x: 2 }]);
-  assert.equal(continuation.token, "+RID:d#RT:1#TRC:2#RTD:Mg==");
+  assert.equal(continuation.token, "+RID:d#RT:1#TRC:2#RTD:WzJd");
 
   ({ result, continuation } = q.exec(collection3, {
     maxItemCount: 2,
@@ -103,7 +111,7 @@ export function testOrderByDesc() {
 
   let { result, continuation } = q.exec(collection3, { maxItemCount: 2 });
   assert.deepStrictEqual(result, [{ _rid: "a", x: 3 }, { _rid: "b", x: 2 }]);
-  assert.equal(continuation.token, "+RID:d#RT:1#TRC:2#RTD:Mg==");
+  assert.equal(continuation.token, "+RID:d#RT:1#TRC:2#RTD:WzJd");
 
   ({ result, continuation } = q.exec(collection3, {
     maxItemCount: 2,
@@ -123,5 +131,35 @@ export function testOrderByWithoutNextItem() {
     continuation
   }));
   assert.deepStrictEqual(result, [{ _rid: "a", x: 3 }]);
+  assert.equal(continuation, null);
+}
+
+export function testMultipleOrderBy() {
+  const q = query(`SELECT * FROM c ORDER BY c.sortKey1, c.sortKey2 DESC`);
+
+  let { result, continuation } = q.exec(collection4, { maxItemCount: 2 });
+  assert.deepStrictEqual(result, [
+    { _rid: "id2", sortKey1: "a", sortKey2: "b" },
+    { _rid: "id1", sortKey1: "a", sortKey2: "a" }
+  ]);
+  assert.equal(continuation.token, "+RID:id5#RT:1#TRC:2#RTD:WyJiIiwiYyJd");
+
+  ({ result, continuation } = q.exec(collection4, {
+    maxItemCount: 2,
+    continuation
+  }));
+  assert.deepStrictEqual(result, [
+    { _rid: "id5", sortKey1: "b", sortKey2: "c" },
+    { _rid: "id4", sortKey1: "b", sortKey2: "b" }
+  ]);
+  assert.equal(continuation.token, "+RID:id3#RT:2#TRC:4#RTD:WyJiIiwiYSJd");
+
+  ({ result, continuation } = q.exec(collection4, {
+    maxItemCount: 2,
+    continuation
+  }));
+  assert.deepStrictEqual(result, [
+    { _rid: "id3", sortKey1: "b", sortKey2: "a" }
+  ]);
   assert.equal(continuation, null);
 }

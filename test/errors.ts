@@ -17,16 +17,6 @@ export const reserved = testQuery(
   SyntaxError
 );
 
-export const multipleOrderByItems = testQuery(
-  [],
-  {
-    query: "select c.id from c order by c.a, c.b"
-  },
-  new SyntaxError(
-    "Multiple order-by items are not supported. Please specify a single order-by items."
-  )
-);
-
 export const asteriskIsOnlyValidWithSingleInputSet = testQuery(
   [],
   {

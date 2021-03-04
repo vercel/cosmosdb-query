@@ -8,7 +8,7 @@ type Context = {
   ast?: any;
   highCardinality?: boolean;
   document?: any;
-  orderBy?: any;
+  orderBy?: any[];
 };
 
 function transform(contexts: Context[], node: { [x: string]: any }) {
@@ -1010,16 +1010,15 @@ const definitions: { [key: string]: Function } = {
     contexts: Context[],
     { expressions }: { expressions: any[] }
   ) {
-    if (expressions.length > 1) {
-      throw new SyntaxError(
-        "Multiple order-by items are not supported. Please specify a single order-by items."
-      );
-    }
-
     const ctx = contexts[contexts.length - 1];
-    ctx.orderBy = transform(contexts, expressions[0]);
+    ctx.orderBy = expressions.map(e => transform(contexts, e));
 
-    return callHelperNode("sort", ctx.ast, ridPathNode(ctx), ctx.orderBy);
+    return callHelperNode(
+      "sort",
+      ctx.ast,
+      ridPathNode(ctx),
+      ...(ctx.orderBy || [])
+    );
   },
 
   sort_expression(
@@ -1092,7 +1091,7 @@ const definitions: { [key: string]: Function } = {
         { type: "Identifier", name: "$maxItemCount" },
         { type: "Identifier", name: "$continuation" },
         ridPathNode(ctx),
-        ctx.orderBy
+        ...(ctx.orderBy || [])
       );
     }
 

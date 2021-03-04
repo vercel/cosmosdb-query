@@ -248,7 +248,7 @@ export const paginate = (
   maxItemCount?: number,
   continuation?: { token: string },
   getRid?: (a: any) => any,
-  orderBy?: [(a: any) => any, boolean]
+  ...orders: [(a: any) => any, boolean][]
 ) => {
   let result = collection;
   let token: continuationToken.Token;
@@ -258,12 +258,15 @@ export const paginate = (
     token = continuationToken.decode(continuation.token);
 
     let src = 0;
-    let i = result.findIndex(([, d]) => {
-      if (typeof token.RTD !== "undefined" && orderBy) {
-        const rtd = orderBy[0](d);
-        const r = comparator(rtd, token.RTD) * (orderBy[1] ? -1 : 1);
-        if (r < 0) return false;
-        if (r > 0) return true;
+    let index = result.findIndex(([, d]) => {
+      if (typeof token.RTD !== "undefined" && orders.length) {
+        for (let i = 0, l = orders.length; i < l; i += 1) {
+          const [getValue, desc] = orders[i];
+          const rtd = getValue(d);
+          const r = comparator(rtd, token.RTD[i]) * (desc ? -1 : 1);
+          if (r < 0) return false;
+          if (r > 0) return true;
+        }
       }
 
       const rid = getRid(d);
@@ -279,9 +282,9 @@ export const paginate = (
       return false;
     });
 
-    i = i >= 0 ? i : result.length;
-    result = result.slice(i);
-    offset += i;
+    index = index >= 0 ? index : result.length;
+    result = result.slice(index);
+    offset += index;
   }
 
   let nextContinuation: {
@@ -299,7 +302,9 @@ export const paginate = (
       }
       const RT = (token ? token.RT : 0) + 1;
       const TRC = (token ? token.TRC : 0) + maxItemCount;
-      const RTD = orderBy ? orderBy[0](item) : undefined;
+      const RTD = orders.length
+        ? orders.map(([getValue]) => getValue(item))
+        : undefined;
 
       // calculate "SRC" which is the offset of items with the same `_rid`;
       let j = offset + maxItemCount - 1;

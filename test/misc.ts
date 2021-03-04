@@ -724,3 +724,21 @@ export const notEqualDifferentType = testQuery(
   },
   [{ id: "javi", foo: null }]
 );
+
+export const multipleOrderBy = testQuery(
+  [
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" }
+  ],
+  {
+    query: "select * from c order by c.sortKey1, c.sortKey2 DESC"
+  },
+  [
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" }
+  ]
+);

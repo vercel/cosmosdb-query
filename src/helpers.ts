@@ -1,6 +1,14 @@
 import * as continuationToken from "./continuation-token";
 
-const TYPE_ORDERS = new Set(["boolean", "null", "string", "number"]);
+const TYPE_ORDERS = new Set([
+  "undefined",
+  "null",
+  "boolean",
+  "number",
+  "string",
+  "array",
+  "object"
+]);
 
 const typeOf = (v: any) => {
   const t = typeof v;
@@ -41,7 +49,7 @@ const comparator = (a: any, b: any) => {
   const bType = typeOf(b);
 
   if (aType === bType) {
-    if (!TYPE_ORDERS.has(aType)) return 0;
+    if (aType === "object") return 0;
     return a < b ? -1 : 1;
   }
 
@@ -220,27 +228,10 @@ export const sort = (
     return comparator(rid1, rid2);
   });
 
-  if (!orders.length) return sorted;
+  if (orders.length !== 1) return sorted;
 
-  // find the index of the first invalid item (undefined, object or array)
-  let idx;
-  for (let i = sorted.length - 1; i >= 0; i -= 1) {
-    const doc = sorted[i];
-
-    for (let j = 0, l = orders.length; j < l; j += 1) {
-      const [getValue] = orders[j];
-      const value = getValue(doc);
-      const t = typeOf(value);
-      if (TYPE_ORDERS.has(t)) {
-        idx = i !== sorted.length - 1 ? i + 1 : -1;
-        break;
-      }
-    }
-
-    if (idx != null) break;
-  }
-
-  return idx != null && idx >= 0 ? sorted.slice(0, idx) : sorted;
+  const [getValue] = orders[0];
+  return sorted.filter(d => typeof getValue(d) !== "undefined");
 };
 
 export const paginate = (

@@ -470,9 +470,14 @@ export const orderTypes = testQuery(
     query: "select value c.v from c order by c.v"
   },
   [
+    null,
     false,
     true,
-    null,
+    0,
+    0.5,
+    1,
+    2,
+    10,
     "01",
     "1",
     "10",
@@ -481,11 +486,12 @@ export const orderTypes = testQuery(
     "B",
     "a",
     "b",
-    0,
-    0.5,
-    1,
-    2,
-    10
+    [],
+    [1],
+    [2],
+    {},
+    { hi: 2 },
+    { hi: 1 }
   ]
 );
 
@@ -740,5 +746,31 @@ export const multipleOrderBy = testQuery(
     { id: "id1", sortKey1: "a", sortKey2: "a" },
     { id: "id4", sortKey1: "b", sortKey2: "b" },
     { id: "id3", sortKey1: "b", sortKey2: "a" }
+  ]
+);
+
+export const filterUndefinedOrderBy = testQuery(
+  [{ id: "foo", sortKey: "a" }, { id: "bar" }, { id: "baz", sortKey: "b" }],
+  {
+    query: "SELECT * FROM c ORDER BY c.sortKey"
+  },
+  [{ id: "foo", sortKey: "a" }, { id: "baz", sortKey: "b" }]
+);
+
+export const DoNotfilterUndefinedMultipleOrderBy = testQuery(
+  [
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "b" },
+    { id: "id3", sortKey2: "b" },
+    { id: "id4" }
+  ],
+  {
+    query: "SELECT * FROM c ORDER BY c.sortKey1, c.sortKey2 DESC"
+  },
+  [
+    { id: "id3", sortKey2: "b" },
+    { id: "id4" },
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "b" }
   ]
 );

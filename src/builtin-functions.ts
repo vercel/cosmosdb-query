@@ -1,7 +1,13 @@
+import {
+  booleanDisjoint,
+  centroid,
+  feature,
+  distance,
+  booleanWithin
+} from "@turf/turf";
+
 // @ts-ignore
 import { SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
-
-import { booleanDisjoint, centroid, feature, distance, booleanWithin, Feature } from "@turf/turf";
 
 const typeOf = (v: any) => {
   const t = typeof v;
@@ -26,7 +32,8 @@ const def = (name: string, argTypes: any[], f: Function) => {
         : a.length !== requiredTypes.length
     ) {
       throw new SyntaxError(
-        `The ${name} function requires ${isVariable ? "at least " : ""}${requiredTypes.length
+        `The ${name} function requires ${isVariable ? "at least " : ""}${
+          requiredTypes.length
         } argument(s)`
       );
     }
@@ -291,29 +298,25 @@ export const UPPER = def("UPPER", ["string"], (v: string) => v.toUpperCase());
 // Spatial functions
 
 const spatialBinaryOp = (name: string, f: Function) => {
-  return def(
-    name,
-    ["any", "any"],
-    (a: string | object, b: string | object) => {
-      const t1 = typeOf(a);
-      if (t1 === "undefined") {
-        return undefined;
-      }
-
-      const a_obj = t1 === "object" ? a : JSON.parse(a as string);
-
-      const t2 = typeOf(a);
-      if (t2 === "undefined") {
-        return undefined;
-      }
-      const b_obj = t1 === "object" ? b : JSON.parse(b as string);
-
-      const a_feat = feature(a_obj);
-      const b_feat = feature(b_obj);
-
-      return f(a_feat, b_feat);
+  return def(name, ["any", "any"], (a: string | object, b: string | object) => {
+    const t1 = typeOf(a);
+    if (t1 === "undefined") {
+      return undefined;
     }
-  );
+
+    const aObj = t1 === "object" ? a : JSON.parse(a as string);
+
+    const t2 = typeOf(a);
+    if (t2 === "undefined") {
+      return undefined;
+    }
+    const bObj = t1 === "object" ? b : JSON.parse(b as string);
+
+    const aFeat = feature(aObj);
+    const bFeat = feature(bObj);
+
+    return f(aFeat, bFeat);
+  });
 };
 
 export const ST_DISTANCE = spatialBinaryOp(
@@ -321,8 +324,8 @@ export const ST_DISTANCE = spatialBinaryOp(
   (a: Feature, b: Feature) => {
     // Turf can only handle point distances - take the centroid
     // as a workaround.
-    const pa = centroid(a),
-      pb = centroid(b);
+    const pa = centroid(a);
+    const pb = centroid(b);
 
     // Convert kilometers to meters.
     return distance(pa.geometry.coordinates, pb.geometry.coordinates) * 1000;

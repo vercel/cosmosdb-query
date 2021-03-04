@@ -1,4 +1,5 @@
 // test examples on https://docs.microsoft.com/en-us/azure/cosmos-db/sql-api-sql-query-reference#bk_built_in_functions
+/* eslint-disable camelcase */
 
 import testQuery from "./utils/test-query";
 
@@ -520,73 +521,55 @@ export const ARRAY_SLICE = test(
 const geometries = {
   points: {
     a: {
-      'type': 'Point',
-      'coordinates': [0.5, 0.5]
+      type: "Point",
+      coordinates: [0.5, 0.5]
     },
     b: {
-      'type': 'Point',
-      'coordinates': [1, 0]
+      type: "Point",
+      coordinates: [1, 0]
     },
     c: {
-      'type': 'Point',
-      'coordinates': [1.5, -0.5]
+      type: "Point",
+      coordinates: [1.5, -0.5]
     },
     d: {
-      'type': 'Point',
-      'coordinates': [0, 0]
+      type: "Point",
+      coordinates: [0, 0]
     }
   },
   polygons: {
     a: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [0, 0], [0, 1], [1, 1], [1, 0], [0, 0]
-        ]
-      ]
+      type: "Polygon",
+      coordinates: [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]]
     },
     b: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [0.5, -0.5], [0.5, 0.5], [1.5, 0.5], [1.5, -0.5], [0.5, -0.5]
-        ]
+      type: "Polygon",
+      coordinates: [
+        [[0.5, -0.5], [0.5, 0.5], [1.5, 0.5], [1.5, -0.5], [0.5, -0.5]]
       ]
     },
     c: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [1, -1], [1, 0], [2, 0], [2, -1], [1, -1]
-        ]
-      ]
+      type: "Polygon",
+      coordinates: [[[1, -1], [1, 0], [2, 0], [2, -1], [1, -1]]]
     },
     d: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [1.5, -1.5], [1.5, -0.5], [2.5, -0.5], [2.5, -1.5], [1.5, -1.5]
-        ]
+      type: "Polygon",
+      coordinates: [
+        [[1.5, -1.5], [1.5, -0.5], [2.5, -0.5], [2.5, -1.5], [1.5, -1.5]]
       ]
     },
     e: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25], [0.25, 0.25]
-        ]
+      type: "Polygon",
+      coordinates: [
+        [[0.25, 0.25], [0.25, 0.75], [0.75, 0.75], [0.75, 0.25], [0.25, 0.25]]
       ]
     },
     f: {
-      'type': 'Polygon',
-      'coordinates': [
-        [
-          [0.25, 0], [0.25, 0.5], [0.75, 0.5], [0.75, 0], [0.25, 0]
-        ]
-      ]
-    },
+      type: "Polygon",
+      coordinates: [[[0.25, 0], [0.25, 0.5], [0.75, 0.5], [0.75, 0], [0.25, 0]]]
+    }
   }
-}
+};
 
 export const ST_DISTANCE = testQuery(
   null,
@@ -600,13 +583,16 @@ export const ST_DISTANCE = testQuery(
       {
         name: "@pa",
         value: geometries.points.a
-      }, {
+      },
+      {
         name: "@pb",
         value: geometries.points.b
-      }, {
+      },
+      {
         name: "@a",
         value: geometries.polygons.a
-      }, {
+      },
+      {
         name: "@d",
         value: geometries.polygons.d
       }
@@ -618,7 +604,7 @@ export const ST_DISTANCE = testQuery(
       $2: 0.0
     }
   ]
-)
+);
 
 export const ST_DISTANCE_query = testQuery(
   [
@@ -640,12 +626,8 @@ export const ST_DISTANCE_query = testQuery(
       }
     ]
   },
-  [
-    { "id": 'a' },
-    { "id": 'b' },
-    { "id": 'c' },
-  ]
-)
+  [{ id: "a" }, { id: "b" }, { id: "c" }]
+);
 
 export const ST_WITHIN = testQuery(
   null,
@@ -660,13 +642,16 @@ export const ST_WITHIN = testQuery(
       {
         name: "@a",
         value: geometries.polygons.a
-      }, {
+      },
+      {
         name: "@b",
         value: geometries.polygons.b
-      }, {
+      },
+      {
         name: "@pa",
         value: geometries.points.a
-      }, {
+      },
+      {
         name: "@pd",
         value: geometries.points.d
       }
@@ -679,7 +664,7 @@ export const ST_WITHIN = testQuery(
       $3: false
     }
   ]
-)
+);
 
 export const ST_WITHIN_query = testQuery(
   [
@@ -701,10 +686,8 @@ export const ST_WITHIN_query = testQuery(
       }
     ]
   },
-  [
-    { "id": 'a' },
-  ]
-)
+  [{ id: "a" }]
+);
 
 export const ST_INTERSECTS = testQuery(
   null,
@@ -719,13 +702,16 @@ export const ST_INTERSECTS = testQuery(
       {
         name: "@a",
         value: JSON.stringify(geometries.polygons.a)
-      }, {
+      },
+      {
         name: "@b",
         value: JSON.stringify(geometries.polygons.b)
-      }, {
+      },
+      {
         name: "@c",
         value: JSON.stringify(geometries.polygons.c)
-      }, {
+      },
+      {
         name: "@d",
         value: JSON.stringify(geometries.polygons.d)
       }
@@ -738,7 +724,7 @@ export const ST_INTERSECTS = testQuery(
       $3: false
     }
   ]
-)
+);
 
 export const ST_INTERSECTS_query = testQuery(
   [
@@ -760,9 +746,5 @@ export const ST_INTERSECTS_query = testQuery(
       }
     ]
   },
-  [
-    { "id": 'a' },
-    { "id": 'b' },
-    { "id": 'd' },
-  ]
-)
+  [{ id: "a" }, { id: "b" }, { id: "d" }]
+);

@@ -46,7 +46,7 @@ export const cardinalityOfScalarSubqueryResultSetCannotBeGreaterThenOne = testQu
 export const multipleOrderByWithoutCompositeIndexes = testQuery(
   [],
   {
-    query: "SELECT c.id FROM c ORDER BY c.a, c.b",
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
     compositeIndexes: []
   },
   new Error(
@@ -70,7 +70,7 @@ export const multipleOrderByWithoutCorrespondingCompositeIndexes1 = testQuery(
 export const multipleOrderByWithoutCorrespondingCompositeIndexes2 = testQuery(
   [],
   {
-    query: "SELECT c.id FROM c ORDER BY c.a, c.b",
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
     compositeIndexes: [
       [{ path: "/b", order: "descending" }, { path: "/a", order: "ascending" }]
     ]

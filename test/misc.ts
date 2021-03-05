@@ -470,9 +470,14 @@ export const orderTypes = testQuery(
     query: "select value c.v from c order by c.v"
   },
   [
+    null,
     false,
     true,
-    null,
+    0,
+    0.5,
+    1,
+    2,
+    10,
     "01",
     "1",
     "10",
@@ -481,11 +486,12 @@ export const orderTypes = testQuery(
     "B",
     "a",
     "b",
-    0,
-    0.5,
-    1,
-    2,
-    10
+    [],
+    [1],
+    [2],
+    {},
+    { hi: 2 },
+    { hi: 1 }
   ]
 );
 
@@ -723,4 +729,96 @@ export const notEqualDifferentType = testQuery(
     parameters: [{ name: "@id", value: "javi" }]
   },
   [{ id: "javi", foo: null }]
+);
+
+export const multipleOrderBy = testQuery(
+  [
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" }
+  ],
+  {
+    query: "select * from c order by c.sortKey1, c.sortKey2 DESC"
+  },
+  [
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" }
+  ]
+);
+
+export const multipleOrderByWithCompositeIndexes = testQuery(
+  [
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" }
+  ],
+  {
+    query: "select * from c order by c.sortKey1, c.sortKey2 DESC",
+    compositeIndexes: [
+      [
+        { path: "/sortKey1", order: "ascending" },
+        { path: "/sortKey2", order: "descending" }
+      ]
+    ]
+  },
+  [
+    { id: "id2", sortKey1: "a", sortKey2: "b" },
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id4", sortKey1: "b", sortKey2: "b" },
+    { id: "id3", sortKey1: "b", sortKey2: "a" }
+  ]
+);
+
+export const multipleOrderByWithCompositeIndexes2 = testQuery(
+  [
+    { id: "id1", prop: { sortKey1: "a", sortKey2: "a" } },
+    { id: "id2", prop: { sortKey1: "a", sortKey2: "b" } },
+    { id: "id3", prop: { sortKey1: "b", sortKey2: "a" } },
+    { id: "id4", prop: { sortKey1: "b", sortKey2: "b" } }
+  ],
+  {
+    query: "select * from c order by c.prop.sortKey1 DESC, c.prop.sortKey2",
+    compositeIndexes: [
+      [
+        { path: "/prop/sortKey1", order: "descending" },
+        { path: "/prop/sortKey2", order: "ascending" }
+      ]
+    ]
+  },
+  [
+    { id: "id3", prop: { sortKey1: "b", sortKey2: "a" } },
+    { id: "id4", prop: { sortKey1: "b", sortKey2: "b" } },
+    { id: "id1", prop: { sortKey1: "a", sortKey2: "a" } },
+    { id: "id2", prop: { sortKey1: "a", sortKey2: "b" } }
+  ]
+);
+
+export const filterUndefinedOrderBy = testQuery(
+  [{ id: "foo", sortKey: "a" }, { id: "bar" }, { id: "baz", sortKey: "b" }],
+  {
+    query: "SELECT * FROM c ORDER BY c.sortKey"
+  },
+  [{ id: "foo", sortKey: "a" }, { id: "baz", sortKey: "b" }]
+);
+
+export const DoNotfilterUndefinedMultipleOrderBy = testQuery(
+  [
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "b" },
+    { id: "id3", sortKey2: "b" },
+    { id: "id4" }
+  ],
+  {
+    query: "SELECT * FROM c ORDER BY c.sortKey1, c.sortKey2 DESC"
+  },
+  [
+    { id: "id3", sortKey2: "b" },
+    { id: "id4" },
+    { id: "id1", sortKey1: "a", sortKey2: "a" },
+    { id: "id2", sortKey1: "b" }
+  ]
 );

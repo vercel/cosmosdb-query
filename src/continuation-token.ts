@@ -12,20 +12,24 @@ export type Token = {
   SRC?: number;
 
   // the value for the ORDER BY clause
-  RTD?: any;
+  RTD?: any[];
 };
 
-function encodeAny(RTD: any) {
+function encodeAnyArray(RTD: any[]) {
   return Buffer.from(JSON.stringify(RTD)).toString("base64");
 }
 
-function decodeAny(RTD: string) {
-  return JSON.parse(Buffer.from(RTD, "base64").toString());
+function decodeAnyArray(RTD: string) {
+  const v = JSON.parse(Buffer.from(RTD, "base64").toString());
+  if (!Array.isArray(v)) {
+    throw new TypeError("invalid RTS on continuation token");
+  }
+  return v;
 }
 
 export const encode = (t: Token) => {
   return `+RID:${t.RID}#RT:${t.RT}${t.SRC ? `#SRC:${t.SRC}` : ""}#TRC:${t.TRC}${
-    typeof t.RTD !== "undefined" ? `#RTD:${encodeAny(t.RTD)}` : ""
+    typeof t.RTD !== "undefined" ? `#RTD:${encodeAnyArray(t.RTD)}` : ""
   }`;
 };
 
@@ -45,7 +49,7 @@ export const decode = (token: string) => {
             value = parseInt(value, 10);
             break;
           case "RTD":
-            value = decodeAny(value);
+            value = decodeAnyArray(value);
             break;
           default:
           // noop

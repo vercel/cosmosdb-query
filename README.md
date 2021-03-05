@@ -36,6 +36,7 @@ const q = query("SELECT * FROM c")
   - `udf` &lt;Object>
   - `maxItemCount` &lt;number> The number of items to return at a time
   - `continuation` &lt;Object> Continuation token
+  - `compositeIndexes `&lt;Object[][]> Optional composite index definitions for validating multiple `ORDER BY` properties. By default, no definition is required and this value is used only for validation.
 - Returns: &lt;Object>
   - `result` &lt;Object[]> Result documents
   - `continuation` &lt;Object> Continuation token for subsequent calls

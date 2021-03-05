@@ -8,7 +8,7 @@ type Context = {
   ast?: any;
   highCardinality?: boolean;
   document?: any;
-  orderBy?: any;
+  orderBy?: any[];
 };
 
 function transform(contexts: Context[], node: { [x: string]: any }) {
@@ -133,6 +133,33 @@ function transformWithNewContext(
   const transformed = transform(contexts, node);
   contexts.pop();
   return [transformed, nextCtx];
+}
+
+function transformSortExpression(contexts: Context[], expression: any): any {
+  if (expression.type === "scalar_member_expression") {
+    const object = transformSortExpression(contexts, expression.object);
+    let property = transform(contexts, expression.property);
+    if (!expression.computed) {
+      property = {
+        type: "StringLiteral",
+        value: property.name
+      };
+    }
+
+    return {
+      type: "ArrayExpression",
+      elements: [...object.elements, property]
+    };
+  }
+
+  const node = {
+    type: "StringLiteral",
+    value: expression.name
+  };
+  return {
+    type: "ArrayExpression",
+    elements: [node]
+  };
 }
 
 const definitions: { [key: string]: Function } = {
@@ -735,6 +762,9 @@ const definitions: { [key: string]: Function } = {
   ) {
     const objectNode = transform(contexts, object);
 
+    // ```
+    // ($_ = object, typeof $_ === "object" && $_ ? $_[property] : undefined)
+    // ```
     return {
       type: "SequenceExpression",
       expressions: [
@@ -1010,16 +1040,16 @@ const definitions: { [key: string]: Function } = {
     contexts: Context[],
     { expressions }: { expressions: any[] }
   ) {
-    if (expressions.length > 1) {
-      throw new SyntaxError(
-        "Multiple order-by items are not supported. Please specify a single order-by items."
-      );
-    }
-
     const ctx = contexts[contexts.length - 1];
-    ctx.orderBy = transform(contexts, expressions[0]);
+    ctx.orderBy = expressions.map(e => transform(contexts, e));
 
-    return callHelperNode("sort", ctx.ast, ridPathNode(ctx), ctx.orderBy);
+    return callHelperNode(
+      "sort",
+      ctx.ast,
+      ridPathNode(ctx),
+      { type: "Identifier", name: "$compositeIndexes" },
+      ...(ctx.orderBy || [])
+    );
   },
 
   sort_expression(
@@ -1032,17 +1062,12 @@ const definitions: { [key: string]: Function } = {
       );
     }
 
-    const ctx = contexts[contexts.length - 1];
-    const node = transform(contexts, expression);
+    const keys = transformSortExpression(contexts, expression);
 
     return {
       type: "ArrayExpression",
       elements: [
-        {
-          type: "ArrowFunctionExpression",
-          params: [ctx.document],
-          body: node
-        },
+        keys,
         {
           type: "BooleanLiteral",
           value: order === "DESC"
@@ -1092,7 +1117,7 @@ const definitions: { [key: string]: Function } = {
         { type: "Identifier", name: "$maxItemCount" },
         { type: "Identifier", name: "$continuation" },
         ridPathNode(ctx),
-        ctx.orderBy
+        ...(ctx.orderBy || [])
       );
     }
 
@@ -1136,6 +1161,10 @@ const definitions: { [key: string]: Function } = {
         {
           type: "Identifier",
           name: "$continuation"
+        },
+        {
+          type: "Identifier",
+          name: "$compositeIndexes"
         },
         // temporal cache
         {

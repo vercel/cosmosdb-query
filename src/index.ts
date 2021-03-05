@@ -4,6 +4,7 @@ import containsPartitionKeys from "./contains-partition-keys";
 import execute from "./executor";
 import { parse, SyntaxError } from "./parser"; // eslint-disable-line import/no-unresolved
 import transform from "./transformer";
+import { CompositeIndex } from "./types";
 
 class Query {
   _query: string;
@@ -35,7 +36,8 @@ class Query {
       parameters,
       udf,
       maxItemCount,
-      continuation
+      continuation,
+      compositeIndexes
     }: {
       parameters?: {
         name: string;
@@ -48,6 +50,7 @@ class Query {
       continuation?: {
         token: string;
       };
+      compositeIndexes?: CompositeIndex[][];
     } = {}
   ) {
     const { code } = this;
@@ -55,7 +58,14 @@ class Query {
       throw new Error("Missing code");
     }
 
-    return execute(coll, { code, parameters, udf, maxItemCount, continuation });
+    return execute(coll, {
+      code,
+      parameters,
+      udf,
+      maxItemCount,
+      continuation,
+      compositeIndexes
+    });
   }
 
   containsPartitionKeys(paths: string[]) {
@@ -64,4 +74,4 @@ class Query {
 }
 
 export default (query: string) => new Query(query);
-export { SyntaxError };
+export { CompositeIndex, SyntaxError };

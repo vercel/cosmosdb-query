@@ -17,16 +17,6 @@ export const reserved = testQuery(
   SyntaxError
 );
 
-export const multipleOrderByItems = testQuery(
-  [],
-  {
-    query: "select c.id from c order by c.a, c.b"
-  },
-  new SyntaxError(
-    "Multiple order-by items are not supported. Please specify a single order-by items."
-  )
-);
-
 export const asteriskIsOnlyValidWithSingleInputSet = testQuery(
   [],
   {
@@ -50,5 +40,42 @@ export const cardinalityOfScalarSubqueryResultSetCannotBeGreaterThenOne = testQu
   },
   new SyntaxError(
     "The cardinality of a scalar subquery result set cannot be greater than one."
+  )
+);
+
+export const multipleOrderByWithoutCompositeIndexes = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
+    compositeIndexes: []
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
+  )
+);
+
+export const multipleOrderByWithoutCorrespondingCompositeIndexes1 = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
+    compositeIndexes: [
+      [{ path: "/a", order: "ascending" }, { path: "/b", order: "ascending" }]
+    ]
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
+  )
+);
+
+export const multipleOrderByWithoutCorrespondingCompositeIndexes2 = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
+    compositeIndexes: [
+      [{ path: "/b", order: "descending" }, { path: "/a", order: "ascending" }]
+    ]
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
   )
 );

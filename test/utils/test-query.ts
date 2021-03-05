@@ -1,5 +1,6 @@
 import * as assert from "assert";
-import query from "../../lib";
+// eslint-disable-next-line no-unused-vars
+import query, { CompositeIndex } from "../../lib";
 
 export default (
   collection: any[] | undefined | null,
@@ -12,6 +13,7 @@ export default (
     udf?: {
       [x: string]: any;
     };
+    compositeIndexes?: CompositeIndex[][];
   },
   expected:
     | any
@@ -22,7 +24,8 @@ export default (
 ) => () => {
   const opts = {
     parameters: params.parameters,
-    udf: params.udf
+    udf: params.udf,
+    compositeIndexes: params.compositeIndexes
   };
 
   if (expected instanceof Error || expected.prototype instanceof Error) {

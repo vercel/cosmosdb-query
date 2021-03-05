@@ -1,6 +1,8 @@
 import * as aggregateFunctions from "./aggregate-functions";
 import * as builtinFunctions from "./builtin-functions";
 import * as helpers from "./helpers";
+// eslint-disable-next-line no-unused-vars
+import { CompositeIndex } from "./types";
 
 export default (
   collection: any[],
@@ -9,7 +11,8 @@ export default (
     parameters,
     udf = {},
     maxItemCount,
-    continuation
+    continuation,
+    compositeIndexes
   }: {
     code: string;
     parameters?: {
@@ -23,6 +26,7 @@ export default (
     continuation?: {
       token: string;
     };
+    compositeIndexes?: CompositeIndex[][];
   }
 ) => {
   // eslint-disable-next-line no-new-func
@@ -41,6 +45,7 @@ export default (
     udf,
     params,
     maxItemCount,
-    continuation
+    continuation,
+    compositeIndexes
   );
 };

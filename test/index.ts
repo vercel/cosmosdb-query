@@ -517,6 +517,27 @@ export const orderByClause2 = testQuery(
   ]
 );
 
+export const orderByClause3 = testQuery(
+  collection,
+  {
+    query: `
+      SELECT f.id, f.creationDate
+      FROM Families f
+      ORDER BY f.address.city ASC, f.creationDate DESC
+    `
+  },
+  [
+    {
+      id: "WakefieldFamily",
+      creationDate: 1431620462
+    },
+    {
+      id: "AndersenFamily",
+      creationDate: 1431620472
+    }
+  ]
+);
+
 export const iteration1 = testQuery(
   collection,
   { query: "SELECT * FROM c IN Families.children" },

@@ -1,4 +1,6 @@
 import * as continuationToken from "./continuation-token";
+// eslint-disable-next-line no-unused-vars
+import { CompositeIndex } from "./types";
 
 const TYPE_ORDERS = new Set([
   "undefined",
@@ -60,6 +62,14 @@ const comparator = (a: any, b: any) => {
   }
 
   return 0;
+};
+
+const getValue = (doc: any, [key, ...keys]: string[]): any => {
+  const value = doc ? doc[key] : undefined;
+  if (keys.length && typeof value !== "undefined") {
+    return getValue(value, keys);
+  }
+  return value;
 };
 
 export const stripUndefined = (obj: any): any => {
@@ -211,13 +221,33 @@ export const sort = (
     [x: string]: any;
   }[],
   getRid: (a: any) => any,
-  ...orders: [(a: any) => any, boolean][]
+  compositeIndexes?: CompositeIndex[][],
+  ...orders: [any[], boolean][]
 ) => {
+  if (orders.length > 1 && compositeIndexes) {
+    const found = compositeIndexes.some(indexes => {
+      if (indexes.length !== orders.length) return false;
+
+      return indexes.every((index, i) => {
+        const [keys, desc] = orders[i];
+        const path = `/${keys.slice(1).join("/")}`;
+        const order = desc ? "descending" : "ascending";
+        return path === index.path && order === index.order;
+      });
+    });
+
+    if (!found) {
+      throw new Error(
+        "The order by query does not have a corresponding composite index that it can be served from."
+      );
+    }
+  }
+
   const sorted = collection.slice().sort((a, b) => {
     for (let i = 0, l = orders.length; i < l; i += 1) {
-      const [getValue, desc] = orders[i];
-      const aValue = getValue(a);
-      const bValue = getValue(b);
+      const [keys, desc] = orders[i];
+      const aValue = getValue(a, keys);
+      const bValue = getValue(b, keys);
       const r = comparator(aValue, bValue);
       if (r !== 0) return desc ? -r : r;
     }
@@ -230,8 +260,8 @@ export const sort = (
 
   if (orders.length !== 1) return sorted;
 
-  const [getValue] = orders[0];
-  return sorted.filter(d => typeof getValue(d) !== "undefined");
+  const [keys] = orders[0];
+  return sorted.filter(d => typeof getValue(d, keys) !== "undefined");
 };
 
 export const paginate = (
@@ -239,7 +269,7 @@ export const paginate = (
   maxItemCount?: number,
   continuation?: { token: string },
   getRid?: (a: any) => any,
-  ...orders: [(a: any) => any, boolean][]
+  ...orders: [any[], boolean][]
 ) => {
   let result = collection;
   let token: continuationToken.Token;
@@ -252,8 +282,8 @@ export const paginate = (
     let index = result.findIndex(([, d]) => {
       if (typeof token.RTD !== "undefined" && orders.length) {
         for (let i = 0, l = orders.length; i < l; i += 1) {
-          const [getValue, desc] = orders[i];
-          const rtd = getValue(d);
+          const [keys, desc] = orders[i];
+          const rtd = getValue(d, keys);
           const r = comparator(rtd, token.RTD[i]) * (desc ? -1 : 1);
           if (r < 0) return false;
           if (r > 0) return true;
@@ -294,7 +324,7 @@ export const paginate = (
       const RT = (token ? token.RT : 0) + 1;
       const TRC = (token ? token.TRC : 0) + maxItemCount;
       const RTD = orders.length
-        ? orders.map(([getValue]) => getValue(item))
+        ? orders.map(([keys]) => getValue(item, keys))
         : undefined;
 
       // calculate "SRC" which is the offset of items with the same `_rid`;

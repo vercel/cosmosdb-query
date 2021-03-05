@@ -135,6 +135,33 @@ function transformWithNewContext(
   return [transformed, nextCtx];
 }
 
+function transformSortExpression(contexts: Context[], expression: any): any {
+  if (expression.type === "scalar_member_expression") {
+    const object = transformSortExpression(contexts, expression.object);
+    let property = transform(contexts, expression.property);
+    if (!expression.computed) {
+      property = {
+        type: "StringLiteral",
+        value: property.name
+      };
+    }
+
+    return {
+      type: "ArrayExpression",
+      elements: [...object.elements, property]
+    };
+  }
+
+  const node = {
+    type: "StringLiteral",
+    value: expression.name
+  };
+  return {
+    type: "ArrayExpression",
+    elements: [node]
+  };
+}
+
 const definitions: { [key: string]: Function } = {
   array_constant(
     contexts: Context[],
@@ -735,6 +762,9 @@ const definitions: { [key: string]: Function } = {
   ) {
     const objectNode = transform(contexts, object);
 
+    // ```
+    // ($_ = object, typeof $_ === "object" && $_ ? $_[property] : undefined)
+    // ```
     return {
       type: "SequenceExpression",
       expressions: [
@@ -1017,6 +1047,7 @@ const definitions: { [key: string]: Function } = {
       "sort",
       ctx.ast,
       ridPathNode(ctx),
+      { type: "Identifier", name: "$compositeIndexes" },
       ...(ctx.orderBy || [])
     );
   },
@@ -1031,17 +1062,12 @@ const definitions: { [key: string]: Function } = {
       );
     }
 
-    const ctx = contexts[contexts.length - 1];
-    const node = transform(contexts, expression);
+    const keys = transformSortExpression(contexts, expression);
 
     return {
       type: "ArrayExpression",
       elements: [
-        {
-          type: "ArrowFunctionExpression",
-          params: [ctx.document],
-          body: node
-        },
+        keys,
         {
           type: "BooleanLiteral",
           value: order === "DESC"
@@ -1135,6 +1161,10 @@ const definitions: { [key: string]: Function } = {
         {
           type: "Identifier",
           name: "$continuation"
+        },
+        {
+          type: "Identifier",
+          name: "$compositeIndexes"
         },
         // temporal cache
         {

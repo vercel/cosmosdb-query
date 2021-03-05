@@ -42,3 +42,40 @@ export const cardinalityOfScalarSubqueryResultSetCannotBeGreaterThenOne = testQu
     "The cardinality of a scalar subquery result set cannot be greater than one."
   )
 );
+
+export const multipleOrderByWithoutCompositeIndexes = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b",
+    compositeIndexes: []
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
+  )
+);
+
+export const multipleOrderByWithoutCorrespondingCompositeIndexes1 = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b DESC",
+    compositeIndexes: [
+      [{ path: "/a", order: "ascending" }, { path: "/b", order: "ascending" }]
+    ]
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
+  )
+);
+
+export const multipleOrderByWithoutCorrespondingCompositeIndexes2 = testQuery(
+  [],
+  {
+    query: "SELECT c.id FROM c ORDER BY c.a, c.b",
+    compositeIndexes: [
+      [{ path: "/b", order: "descending" }, { path: "/a", order: "ascending" }]
+    ]
+  },
+  new Error(
+    "The order by query does not have a corresponding composite index that it can be served from."
+  )
+);

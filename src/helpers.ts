@@ -65,7 +65,7 @@ const comparator = (a: any, b: any) => {
 };
 
 const getValue = (doc: any, [key, ...keys]: string[]): any => {
-  const value = doc ? doc[key] : undefined;
+  const value = typeof doc === "object" && doc ? doc[key] : undefined;
   if (keys.length && typeof value !== "undefined") {
     return getValue(value, keys);
   }

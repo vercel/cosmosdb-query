@@ -45,3 +45,9 @@ export const notContainsMultipleKeys = testPartitionKeys(
 );
 
 export const empty = testPartitionKeys("SELECT * FROM c", []);
+
+export const computedProperty = testPartitionKeys(
+  'SELECT * FROM c WHERE c["partition"] = @pkValue',
+  ["/partition"],
+  true
+);

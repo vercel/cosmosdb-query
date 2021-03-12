@@ -20,7 +20,7 @@ function conditionKeyNodes(node: { [x: string]: any }): any[] {
 
 function toPartitionKey(node: { [x: string]: any }): string | null {
   if (node.type === "scalar_member_expression") {
-    return `${toPartitionKey(node.object) || ""}/${node.property.name}`;
+    return `${toPartitionKey(node.object) || ""}/${node.property.name || node.property.value}`;
   }
   return null;
 }

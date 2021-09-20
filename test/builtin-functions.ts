@@ -748,3 +748,71 @@ export const ST_INTERSECTS_query = testQuery(
   },
   [{ id: "a" }, { id: "b" }, { id: "d" }]
 );
+
+export const REGEXMATCH1 = test(
+  `
+    SELECT RegexMatch ("abcd", "ABC", "") AS NoModifiers,
+      RegexMatch ("abcd", "ABC", "i") AS CaseInsensitive,
+      RegexMatch ("abcd", "ab.", "") AS WildcardCharacter,
+      RegexMatch ("abcd", "ab c", "x") AS IgnoreWhiteSpace,
+      RegexMatch ("abcd", "aB c", "ix") AS CaseInsensitiveAndIgnoreWhiteSpace
+  `,
+  [
+    {
+      NoModifiers: false,
+      CaseInsensitive: true,
+      WildcardCharacter: true,
+      IgnoreWhiteSpace: true,
+      CaseInsensitiveAndIgnoreWhiteSpace: true
+    }
+  ]
+);
+
+export const REGEXMATCH2 = testQuery(
+  [
+    { description: "salt" },
+    { description: "sal" },
+    { description: "definitely salt" }
+  ],
+  {
+    query: `
+      SELECT *
+      FROM c
+      WHERE RegexMatch (c.description, "salt{1}","")
+    `
+  },
+  [{ description: "salt" }, { description: "definitely salt" }]
+);
+
+export const REGEXMATCH3 = testQuery(
+  [{ description: "42" }, { description: "asdf" }, { description: "hi 0" }],
+  {
+    query: `
+      SELECT *
+      FROM c
+      WHERE RegexMatch (c.description, "[0-9]","")
+    `
+  },
+  [{ description: "42" }, { description: "hi 0" }]
+);
+
+export const REGEXMATCH4 = testQuery(
+  [
+    { description: " salt " },
+    { description: " Salt " },
+    { description: "salt " },
+    { description: " stla " }
+  ],
+  {
+    query: `
+      SELECT *
+      FROM c
+      WHERE RegexMatch (c.description, " s... ","i")
+    `
+  },
+  [
+    { description: " salt " },
+    { description: " Salt " },
+    { description: " stla " }
+  ]
+);

@@ -340,3 +340,26 @@ export const ST_INTERSECTS = spatialBinaryOp(
   "ST_INTERSECTS",
   (a: Feature, b: Feature) => !booleanDisjoint(a, b)
 );
+
+export const REGEXMATCH = def(
+  "REGEXMATCH",
+  ["string", "string", { type: "string", optional: true }],
+  (str: string, p: string, f?: string) => {
+    let pattern = p;
+    let flags = f;
+    if (flags) {
+      if (!/^[msix]+$/.test(flags)) {
+        throw new Error(`Unexpectd flags on REGEXMATCH: ${flags}`);
+      }
+
+      if (flags.includes("x")) {
+        pattern = pattern.replace(/\s/g, "");
+        flags = flags.replace(/x/g, "");
+      }
+    }
+
+    // TODO: cache RegExp instances?
+    const re = new RegExp(pattern, flags);
+    return re.test(str);
+  }
+);

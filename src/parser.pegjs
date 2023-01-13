@@ -22,10 +22,12 @@ sql = _ body:select_query _
 select_query
   = select _
     top:(top _ v:top_specification { return v })? _
+    distinct:distinct? _
     select:select_specification _
     from:(from _ v:from_specification { return v })? _
     where:(where _ v:filter_condition { return v })? _
-    orderBy:(order _ by _ v:sort_specification { return v })?
+    orderBy:(order _ by _ v:sort_specification { return v })? _
+    groupBy:(group _ by _ v:group_specification { return v })?
     {
       return {
         type: 'select_query',
@@ -131,6 +133,16 @@ sort_expression
         order
       }
     }
+    
+group_specification
+  = head:scalar_expression tail:(_ "," _ v:scalar_expression { return v })*
+    {
+      return {
+        type: 'group_specification',
+        expressions: [head, ...tail]
+      }
+    }
+
 
 scalar_expression
   = scalar_conditional_expression
@@ -218,7 +230,7 @@ number_constant
   }
 
 string_constant
-  = "\"" chars:double_string_character* "\""
+  = '"' chars:double_string_character* '"'
     {
       return {
         type: "string_constant",
@@ -265,10 +277,12 @@ comment
 
 select = "SELECT"i !identifier_start
 top = "TOP"i !identifier_start
+distinct = "DISTINCT"i !identifier_start
 from = "FROM"i !identifier_start
 where = "WHERE"i !identifier_start
 order = "ORDER"i !identifier_start
 by = "BY"i !identifier_start
+group = "GROUP"i !identifier_start
 as = "AS"i !identifier_start
 join = "JOIN"i !identifier_start
 in = "IN"i !identifier_start
@@ -289,10 +303,12 @@ udf = "udf" !identifier_start
 reserved
   = select
   / top
+  / distinct
   / from
   / where
   / order
   / by
+  / group
   / as
   / join
   / in

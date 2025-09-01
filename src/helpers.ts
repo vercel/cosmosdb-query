@@ -243,11 +243,20 @@ export const sort = (
     }
   }
 
-  const sorted = collection.slice().sort((a, b) => {
+  return collection.slice().sort((a, b) => {
     for (let i = 0, l = orders.length; i < l; i += 1) {
       const [keys, desc] = orders[i];
       const aValue = getValue(a, keys);
       const bValue = getValue(b, keys);
+
+      // Handle undefined values for sorting
+      const aUndef = typeof aValue === "undefined";
+      const bUndef = typeof bValue === "undefined";
+      // eslint-disable-next-line no-continue
+      if (aUndef && bUndef) continue;
+      if (aUndef) return desc ? 1 : -1; // undefined at bottom for descending, top for ascending
+      if (bUndef) return desc ? -1 : 1;
+
       const r = comparator(aValue, bValue);
       if (r !== 0) return desc ? -r : r;
     }
@@ -257,11 +266,6 @@ export const sort = (
     const rid2 = getRid(b);
     return comparator(rid1, rid2);
   });
-
-  if (orders.length !== 1) return sorted;
-
-  const [keys] = orders[0];
-  return sorted.filter(d => typeof getValue(d, keys) !== "undefined");
 };
 
 export const paginate = (

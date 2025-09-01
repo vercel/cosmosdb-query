@@ -676,7 +676,11 @@ export const orderByWithEmptyNestedProperty = testQuery(
     query: "select * from c order by c.child.name",
     parameters: [{ name: "@name", value: "foo" }]
   },
-  [{ id: "foo", child: { name: "foo" } }]
+  [
+    { id: "bar", child: null },
+    { id: "baz" },
+    { id: "foo", child: { name: "foo" } }
+  ]
 );
 
 export const deeplyNestedProperty = testQuery(
@@ -797,12 +801,20 @@ export const multipleOrderByWithCompositeIndexes2 = testQuery(
   ]
 );
 
-export const filterUndefinedOrderBy = testQuery(
+export const filterUndefinedOrderByASC = testQuery(
   [{ id: "foo", sortKey: "a" }, { id: "bar" }, { id: "baz", sortKey: "b" }],
   {
-    query: "SELECT * FROM c ORDER BY c.sortKey"
+    query: "SELECT * FROM c ORDER BY c.sortKey ASC"
   },
-  [{ id: "foo", sortKey: "a" }, { id: "baz", sortKey: "b" }]
+  [{ id: "bar" }, { id: "foo", sortKey: "a" }, { id: "baz", sortKey: "b" }]
+);
+
+export const filterUndefinedOrderByDESC = testQuery(
+  [{ id: "foo", sortKey: "a" }, { id: "bar" }, { id: "baz", sortKey: "b" }],
+  {
+    query: "SELECT * FROM c ORDER BY c.sortKey DESC"
+  },
+  [{ id: "baz", sortKey: "b" }, { id: "foo", sortKey: "a" }, { id: "bar" }]
 );
 
 export const DoNotfilterUndefinedMultipleOrderBy = testQuery(
